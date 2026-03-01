@@ -1,561 +1,187 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="周波数測定器">
-    <meta name="theme-color" content="#ffffff">
-    <title>周波数測定器</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23ffffff' width='192' height='192'/><circle cx='96' cy='96' r='50' fill='%23000000'/></svg>">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-        }
-
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow-x: hidden;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #ffffff;
-            color: #000;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            padding-left: max(20px, env(safe-area-inset-left));
-            padding-right: max(20px, env(safe-area-inset-right));
-            padding-top: max(20px, env(safe-area-inset-top));
-            padding-bottom: max(20px, env(safe-area-inset-bottom));
-        }
-
-        .container {
-            width: 100%;
-            max-width: 520px;
-            display: flex;
-            flex-direction: column;
-            gap: 32px;
-            visibility: visible;
-        }
-
-        .header {
-            text-align: center;
-        }
-
-        h1 {
-            font-size: clamp(28px, 6vw, 32px);
-            font-weight: 500;
-            letter-spacing: -0.5px;
-            line-height: 1.2;
-            margin-bottom: 8px;
-        }
-
-        .subtitle {
-            font-size: clamp(13px, 3vw, 14px);
-            color: #666;
-            font-weight: 400;
-            letter-spacing: 0px;
-        }
-
-        .status {
-            font-size: 13px;
-            color: #999;
-            text-align: center;
-            height: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .status.active {
-            color: #000;
-        }
-
-        .display-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        .display-card {
-            background: #f5f5f5;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
-            padding: 20px 16px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .display-card:hover {
-            border-color: #d5d5d5;
-            background: #fafafa;
-        }
-
-        .card-label {
-            font-size: 11px;
-            color: #999;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 500;
-            margin-bottom: 8px;
-        }
-
-        .card-value {
-            font-size: clamp(32px, 9vw, 40px);
-            font-weight: 500;
-            letter-spacing: -1px;
-            line-height: 1;
-            margin-bottom: 4px;
-            font-family: 'Courier New', monospace;
-        }
-
-        .card-unit {
-            font-size: 12px;
-            color: #999;
-            font-weight: 400;
-        }
-
-        .card-note {
-            font-size: clamp(16px, 5vw, 20px);
-            font-weight: 500;
-            margin-top: 8px;
-        }
-
-        .chart-container {
-            background: #f5f5f5;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
-            padding: 16px;
-            height: 200px;
-            transition: all 0.3s ease;
-        }
-
-        .chart-container:hover {
-            border-color: #d5d5d5;
-        }
-
-        canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-            border-radius: 8px;
-        }
-
-        .controls {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        button {
-            flex: 1;
-            min-width: 140px;
-            padding: 12px 16px;
-            background: #000;
-            color: #fff;
-            border: 1px solid #000;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-
-        button:active {
-            transform: scale(0.98);
-            background: #1a1a1a;
-            border-color: #1a1a1a;
-        }
-
-        button:disabled {
-            background: #f0f0f0;
-            color: #999;
-            border-color: #e5e5e5;
-            cursor: not-allowed;
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                gap: 24px;
-            }
-
-            .display-grid {
-                gap: 12px;
-            }
-
-            .display-card {
-                padding: 16px 12px;
-            }
-
-            .chart-container {
-                height: 180px;
-            }
-
-            button {
-                min-width: 120px;
-                padding: 10px 14px;
-                font-size: 13px;
-            }
-        }
-
-        @media (max-width: 360px) {
-            .container {
-                gap: 20px;
-            }
-
-            .display-grid {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-
-            button {
-                flex-basis: 100%;
-                min-width: auto;
-            }
-        }
-
-        /* スクロール対応 */
-        body::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        body::-webkit-scrollbar-track {
-            background: #f5f5f5;
-        }
-
-        body::-webkit-scrollbar-thumb {
-            background: #d5d5d5;
-            border-radius: 3px;
-        }
-
-        body::-webkit-scrollbar-thumb:hover {
-            background: #bbb;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frequency Analyzer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@200;300;400&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#0a0c0f;--surface:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.07);--text-primary:#e8e6e1;--text-muted:#555;--accent:#4ecb8d;--viz-bg:#060810;--overlay-bg:#060810;--grid1:#111a25;--grid2:#0b1018}
+  .light{--bg:#f0f2f5;--surface:rgba(0,0,0,0.04);--border:rgba(0,0,0,0.09);--text-primary:#1a1a1a;--text-muted:#999;--accent:#2a9d6f;--viz-bg:#e8ecf2;--overlay-bg:#e8ecf2;--grid1:#c8d0dc;--grid2:#d4dbe6}
+  html,body{transition:background .3s,color .3s}
+  html,body{height:100%;background:var(--bg);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-weight:300;overflow-x:hidden}
+  .app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 20px 48px}
+  header{text-align:center;margin-bottom:32px}
+  .logo{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px}
+  h1{font-size:clamp(22px,4vw,34px);font-weight:200;letter-spacing:-.02em}
+  .viz-card{width:100%;max-width:780px;border-radius:20px;border:1px solid var(--border);overflow:hidden;background:var(--viz-bg);margin-bottom:16px;position:relative}
+  #threeCanvas{width:100%;height:380px;display:block}
+  .viz-overlay{position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(to top,var(--overlay-bg),transparent);pointer-events:none}
+  .metrics-card{width:100%;max-width:780px;background:var(--surface);border-radius:20px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px}
+  .metrics{display:grid;grid-template-columns:repeat(3,1fr)}
+  .metric{padding:20px 16px;text-align:center;border-right:1px solid var(--border)}
+  .metric:last-child{border-right:none}
+  .metric-label{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--text-muted);font-family:'DM Mono',monospace;margin-bottom:6px}
+  .metric-value{font-family:'DM Mono',monospace;font-size:clamp(18px,3.5vw,26px);font-weight:400;letter-spacing:-.02em;line-height:1;transition:color .2s}
+  .metric-unit{font-size:10px;color:var(--text-muted);margin-left:2px}
+  .metric-value.active{color:var(--accent)}
+  .spectrum-wrap{padding:16px 20px 20px;border-top:1px solid var(--border)}
+  .spectrum-label{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--text-muted);font-family:'DM Mono',monospace;margin-bottom:10px}
+  #spectrumCanvas{width:100%;height:64px;display:block;border-radius:6px}
+  .controls{width:100%;max-width:780px;display:flex;gap:12px;align-items:center;justify-content:center}
+  .btn{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;padding:13px 28px;border-radius:100px;border:1px solid rgba(255,255,255,.15);background:transparent;color:var(--text-primary);cursor:pointer;transition:all .2s}
+  .btn:hover{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.05)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#050706;font-weight:500}
+  .btn.primary:hover{background:#3db87a}
+  .btn:disabled{opacity:.3;cursor:default;pointer-events:none}
+  .status-row{margin-top:16px;display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:.1em}
+  .status-dot{width:5px;height:5px;border-radius:50%;background:var(--text-muted);transition:background .3s}
+  .status-dot.active{background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .theme-btn{position:fixed;top:20px;right:20px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:8px 16px;border-radius:100px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;transition:all .2s;z-index:100}
+  .theme-btn:hover{color:var(--text-primary);border-color:var(--text-primary)}
+  @media(max-width:480px){#threeCanvas{height:260px}.metric{padding:14px 8px}.metric-value{font-size:16px}}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>周波数測定器</h1>
-            <p class="subtitle">リアルタイム周波数解析</p>
-        </div>
-
-        <div class="status" id="status">準備完了</div>
-
-        <div class="display-grid">
-            <div class="display-card">
-                <div class="card-label">周波数</div>
-                <div class="card-value" id="freqValue">0</div>
-                <div class="card-unit">Hz</div>
-                <div class="card-note" id="noteDisplay">-</div>
-            </div>
-            <div class="display-card">
-                <div class="card-label">音量</div>
-                <div class="card-value" id="dbValue">-∞</div>
-                <div class="card-unit">dB</div>
-            </div>
-        </div>
-
-        <div class="chart-container">
-            <canvas id="spectrumCanvas"></canvas>
-        </div>
-
-        <div class="controls">
-            <button id="micButton">マイク開始</button>
-            <button id="stopButton" disabled>停止</button>
-        </div>
-
-        <div id="debugMessage" style="font-size: 12px; color: #999; text-align: center; min-height: 20px; margin-top: 12px;"></div>
+<button class="theme-btn" id="themeBtn">Night Mode</button>
+<div class="app">
+  <header>
+    <div class="logo">Audio Tool</div>
+    <h1>Frequency Analyzer</h1>
+  </header>
+  <div class="viz-card">
+    <canvas id="threeCanvas"></canvas>
+    <div class="viz-overlay"></div>
+  </div>
+  <div class="metrics-card">
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Frequency</div><div class="metric-value" id="freqVal">—<span class="metric-unit">Hz</span></div></div>
+      <div class="metric"><div class="metric-label">Volume</div><div class="metric-value" id="dbVal">—<span class="metric-unit">dB</span></div></div>
+      <div class="metric"><div class="metric-label">Note</div><div class="metric-value" id="noteVal">—</div></div>
     </div>
+    <div class="spectrum-wrap">
+      <div class="spectrum-label">Spectrum</div>
+      <canvas id="spectrumCanvas"></canvas>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="btn primary" id="startBtn">Start</button>
+    <button class="btn" id="stopBtn" disabled>Stop</button>
+  </div>
+  <div class="status-row">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">Ready</span>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function freqToNote(f){if(f<20)return'—';const n=Math.round(12*Math.log2(f/440)+69);return NOTE_NAMES[((n%12)+12)%12]+(Math.floor(n/12)-1);}
+function detectPitch(buf,sr){
+  const SIZE=buf.length;
+  const rms=Math.sqrt(buf.reduce((s,v)=>s+v*v,0)/SIZE);
+  if(rms<0.003)return -1;
+  const maxLag=Math.floor(sr/60);
+  const minLag=Math.floor(sr/1400);
+  const nsdf=new Float32Array(maxLag);
+  for(let lag=minLag;lag<maxLag;lag++){
+    let num=0,denom=0;
+    for(let j=0;j<SIZE-lag;j++){num+=buf[j]*buf[j+lag];denom+=buf[j]*buf[j]+buf[j+lag]*buf[j+lag];}
+    nsdf[lag]=denom>0?(2*num)/denom:0;
+  }
+  let inValley=false,bestLag=-1,bestVal=-1;
+  for(let lag=minLag+1;lag<maxLag-1;lag++){
+    if(!inValley&&nsdf[lag]<0)inValley=true;
+    if(inValley&&nsdf[lag]>0.5&&nsdf[lag]>nsdf[lag-1]&&nsdf[lag]>=nsdf[lag+1]){
+      bestVal=nsdf[lag];bestLag=lag;
+      break;
+    }
+  }
+  if(bestLag<1||bestVal<0.5)return -1;
+  const y1=nsdf[bestLag-1],y2=nsdf[bestLag],y3=nsdf[bestLag+1];
+  const dn=2*(2*y2-y1-y3);
+  return sr/(dn>1e-10?bestLag+(y3-y1)/dn:bestLag);
+}
 
-    <script>
-        // デバッグ情報
-        console.log('周波数測定器 - 初期化開始');
-        
-        let audioContext;
-        let analyser;
-        let microphone;
-        let mediaStream;
-        let animationId;
-        const fftSize = 2048;
+// Three.js
+const canvas3d=document.getElementById('threeCanvas');
+const renderer=new THREE.WebGLRenderer({canvas:canvas3d,antialias:true,alpha:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setClearColor(0x060810,1);
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x060810,0.035);
+const camera=new THREE.PerspectiveCamera(58,2,0.1,200);
+camera.position.set(0,14,30);camera.lookAt(0,2,0);
 
-        const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-        const a4 = 440;
+scene.add(new THREE.AmbientLight(0x0a1020,2));
+const dirLight=new THREE.DirectionalLight(0x4ecb8d,1.5);dirLight.position.set(8,15,8);scene.add(dirLight);
+const pointLight=new THREE.PointLight(0x4ecb8d,4,50);pointLight.position.set(0,8,0);scene.add(pointLight);
+const pointLight2=new THREE.PointLight(0xc4a882,3,40);pointLight2.position.set(-12,4,-8);scene.add(pointLight2);
 
-        function logDebug(msg) {
-            console.log(msg);
-            const debugEl = document.getElementById('debugMessage');
-            if (debugEl) {
-                debugEl.textContent = msg;
-            }
-        }
+// Outer bars
+const BAR_COUNT=80;const bars=[];const barGroup=new THREE.Group();scene.add(barGroup);
+for(let i=0;i<BAR_COUNT;i++){const t=i/BAR_COUNT;const hue=150+t*100;const mat=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},65%,52%)`),emissive:new THREE.Color(`hsl(${hue},65%,18%)`),emissiveIntensity:0.5,roughness:0.25,metalness:0.7});const geo=new THREE.BoxGeometry(0.45,1,0.45);const mesh=new THREE.Mesh(geo,mat);const angle=(i/BAR_COUNT)*Math.PI*2;const radius=10;mesh.position.x=Math.cos(angle)*radius;mesh.position.z=Math.sin(angle)*radius;mesh.position.y=0.5;mesh.rotation.y=-angle;barGroup.add(mesh);bars.push(mesh);}
 
-        function getNote(freq) {
-            if (freq < 20) return '−';
-            const semitones = 12 * Math.log2(freq / a4);
-            const noteNumber = Math.round(semitones) + 57;
-            const noteIndex = ((noteNumber - 1) % 12 + 12) % 12;
-            const octave = Math.floor((noteNumber - 1) / 12);
-            return notes[noteIndex] + octave;
-        }
+// Inner bars
+const BAR_COUNT2=48;const bars2=[];
+for(let i=0;i<BAR_COUNT2;i++){const t=i/BAR_COUNT2;const hue=200+t*60;const mat=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},55%,60%)`),emissive:new THREE.Color(`hsl(${hue},55%,20%)`),emissiveIntensity:0.3,roughness:0.3,metalness:0.6,transparent:true,opacity:0.85});const geo=new THREE.BoxGeometry(0.3,1,0.3);const mesh=new THREE.Mesh(geo,mat);const angle=(i/BAR_COUNT2)*Math.PI*2;const radius=6;mesh.position.x=Math.cos(angle)*radius;mesh.position.z=Math.sin(angle)*radius;mesh.position.y=0.5;mesh.rotation.y=-angle;barGroup.add(mesh);bars2.push(mesh);}
 
-        async function initAudioContext() {
-            try {
-                logDebug('AudioContext初期化中...');
-                if (!audioContext) {
-                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-                    audioContext = new AudioContextClass();
-                    logDebug('AudioContext作成完了');
-                }
-                
-                if (audioContext.state === 'suspended') {
-                    logDebug('AudioContext再開中...');
-                    await audioContext.resume();
-                    logDebug('AudioContext再開完了');
-                }
-                
-                if (!analyser) {
-                    analyser = audioContext.createAnalyser();
-                    analyser.fftSize = fftSize;
-                    analyser.smoothingTimeConstant = 0.85;
-                    logDebug('Analyser作成完了');
-                }
-                return audioContext;
-            } catch (error) {
-                logDebug('AudioContext初期化エラー: ' + error.message);
-                throw error;
-            }
-        }
+// Waveform ring
+const WAVE_PTS=128;const wavePos=new Float32Array(WAVE_PTS*3);const waveGeo=new THREE.BufferGeometry();waveGeo.setAttribute('position',new THREE.BufferAttribute(wavePos,3));const waveMat=new THREE.LineBasicMaterial({color:0x6de8b0,transparent:true,opacity:0.8});const waveLine=new THREE.LineLoop(waveGeo,waveMat);scene.add(waveLine);
 
-        async function startMicrophone() {
-            try {
-                logDebug('マイクアクセス要求中...');
-                await initAudioContext();
-                
-                logDebug('マイク許可ダイアログを表示しています...');
-                
-                const audioConstraints = {
-                    audio: {
-                        echoCancellation: false,
-                        noiseSuppression: false,
-                        autoGainControl: false
-                    }
-                };
+// Center sphere
+const sphereGeo=new THREE.SphereGeometry(1.6,32,32);const sphereMat=new THREE.MeshStandardMaterial({color:0x0d1f16,emissive:0x1a4d30,emissiveIntensity:0.6,roughness:0.1,metalness:0.9});const sphere=new THREE.Mesh(sphereGeo,sphereMat);sphere.position.y=1;scene.add(sphere);
+const wfMat=new THREE.MeshBasicMaterial({color:0x2a6b44,wireframe:true,transparent:true,opacity:0.25});const wfMesh=new THREE.Mesh(sphereGeo,wfMat);wfMesh.position.y=1;scene.add(wfMesh);
 
-                mediaStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
-                logDebug('マイクアクセス許可されました');
-                
-                // MediaStreamAudioSourceの作成
-                if (!microphone && mediaStream) {
-                    try {
-                        microphone = audioContext.createMediaStreamAudioSource(mediaStream);
-                        logDebug('MediaStreamAudioSource作成完了');
-                    } catch (sourceError) {
-                        logDebug('MediaStreamAudioSource作成エラー: ' + sourceError.message);
-                        throw sourceError;
-                    }
-                }
-                
-                if (microphone && analyser) {
-                    microphone.connect(analyser);
-                    logDebug('マイク接続完了');
-                } else {
-                    throw new Error('microphone or analyser is null');
-                }
-                
-                updateStatus(true);
-                analyze();
-            } catch (error) {
-                console.error('マイクエラー:', error);
-                let errorMsg = 'エラー: ';
-                
-                if (error.name === 'NotAllowedError') {
-                    errorMsg += 'マイクアクセスが拒否されました';
-                } else if (error.name === 'NotFoundError') {
-                    errorMsg += 'マイクが見つかりません';
-                } else if (error.name === 'NotReadableError') {
-                    errorMsg += 'マイクが使用中です';
-                } else if (error.name === 'SecurityError') {
-                    errorMsg += 'セキュリティエラー (HTTPSが必要です)';
-                } else {
-                    errorMsg += error.message;
-                }
-                
-                logDebug(errorMsg);
-                alert(errorMsg);
-                updateStatus(false);
-            }
-        }
+scene.add(new THREE.GridHelper(60,35,0x111a25,0x0b1018));
 
-        function stopAudio() {
-            if (microphone) {
-                microphone.disconnect();
-                microphone = null;
-            }
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => {
-                    track.stop();
-                });
-                mediaStream = null;
-            }
-            if (animationId) {
-                cancelAnimationFrame(animationId);
-                animationId = null;
-            }
-            updateStatus(false);
-            logDebug('停止しました');
-        }
+function resizeRenderer(){const w=canvas3d.clientWidth,h=canvas3d.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+resizeRenderer();window.addEventListener('resize',resizeRenderer);
 
-        function updateStatus(isActive) {
-            const status = document.getElementById('status');
-            if (status) {
-                if (isActive) {
-                    status.textContent = '測定中';
-                    status.classList.add('active');
-                    document.getElementById('micButton').disabled = true;
-                    document.getElementById('stopButton').disabled = false;
-                } else {
-                    status.textContent = '準備完了';
-                    status.classList.remove('active');
-                    document.getElementById('micButton').disabled = false;
-                    document.getElementById('stopButton').disabled = true;
-                    document.getElementById('freqValue').textContent = '0';
-                    document.getElementById('noteDisplay').textContent = '−';
-                    document.getElementById('dbValue').textContent = '-∞';
-                }
-            }
-        }
+// Spectrum 2D
+const specCanvas=document.getElementById('spectrumCanvas');const specCtx=specCanvas.getContext('2d');
+function resizeSpec(){const dpr=window.devicePixelRatio||1;const r=specCanvas.getBoundingClientRect();specCanvas.width=r.width*dpr;specCanvas.height=r.height*dpr;specCtx.scale(dpr,dpr);}
+resizeSpec();window.addEventListener('resize',resizeSpec);
+function drawSpectrum(fd,sr){const W=specCanvas.getBoundingClientRect().width,H=specCanvas.getBoundingClientRect().height;specCtx.clearRect(0,0,W,H);const n=80;const bw=W/n-0.5;const lMin=Math.log10(40),lMax=Math.log10(18000);for(let i=0;i<n;i++){const t=i/(n-1);const freq=Math.pow(10,lMin+(lMax-lMin)*t);const idx=Math.min(Math.round(freq/(sr||44100)*analyser.fftSize),fd.length-1);const v=fd[idx]/255;const bh=v*H;const hue=150+(i/n)*100;specCtx.fillStyle=`hsla(${hue},60%,55%,${0.2+v*0.8})`;specCtx.fillRect(i*(bw+0.5),H-bh,bw,bh);}}
 
-        function analyze() {
-            if (!analyser) return;
+let audioCtx,analyser,source,stream,animId,idleAnimId,camAngle=0;
+const freqVal=document.getElementById('freqVal'),dbVal=document.getElementById('dbVal'),noteVal=document.getElementById('noteVal');
+const statusDot=document.getElementById('statusDot'),statusText=document.getElementById('statusText');
+const startBtn=document.getElementById('startBtn'),stopBtn=document.getElementById('stopBtn');
 
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-            analyser.getByteFrequencyData(dataArray);
+function idleLoop(){idleAnimId=requestAnimationFrame(idleLoop);const t=performance.now()*0.001;barGroup.rotation.y=t*0.07;bars.forEach((b,i)=>{const v=(Math.sin(t*1.2+i*0.15)*0.5+0.5)*0.6+0.1;b.scale.y=v;b.position.y=v*0.5;b.material.emissiveIntensity=0.15+v*0.3;});bars2.forEach((b,i)=>{const v=(Math.sin(t*1.8+i*0.2)*0.5+0.5)*0.4+0.05;b.scale.y=v;b.position.y=v*0.5;});sphere.scale.setScalar(1+Math.sin(t*2)*0.05);wfMesh.scale.setScalar(1+Math.sin(t*2)*0.05);camAngle=t*0.04;camera.position.x=Math.sin(camAngle)*5;camera.position.z=30+Math.cos(camAngle*0.6)*3;camera.lookAt(0,2,0);renderer.render(scene,camera);}
+idleLoop();
 
-            let maxValue = 0;
-            let maxIndex = 0;
-            const noiseFloor = 20;
+function startLoop(){cancelAnimationFrame(idleAnimId);const bufLen=analyser.fftSize;const timeData=new Uint8Array(bufLen);const freqData=new Uint8Array(analyser.frequencyBinCount);const floatData=new Float32Array(bufLen);
+function tick(){animId=requestAnimationFrame(tick);analyser.getByteTimeDomainData(timeData);analyser.getByteFrequencyData(freqData);analyser.getFloatTimeDomainData(floatData);const t=performance.now()*0.001;
+const nyquist=analyser.frequencyBinCount;const logMin=Math.log10(40),logMax=Math.log10(18000);for(let i=0;i<BAR_COUNT;i++){const t=i/(BAR_COUNT-1);const freq=Math.pow(10,logMin+(logMax-logMin)*t);const idx=Math.min(Math.round(freq/audioCtx.sampleRate*analyser.fftSize),nyquist-1);const v=freqData[idx]/255;const th=Math.max(0.04,v*14);bars[i].scale.y+=(th-bars[i].scale.y)*0.22;bars[i].position.y=bars[i].scale.y*0.5;bars[i].material.emissiveIntensity=0.2+v*1.5;}
+for(let i=0;i<BAR_COUNT2;i++){const t=i/(BAR_COUNT2-1);const freq=Math.pow(10,logMin+(logMax-logMin)*t);const idx=Math.min(Math.round(freq/audioCtx.sampleRate*analyser.fftSize),nyquist-1);const v=freqData[idx]/255;const th=Math.max(0.04,v*8);bars2[i].scale.y+=(th-bars2[i].scale.y)*0.28;bars2[i].position.y=bars2[i].scale.y*0.5;bars2[i].material.emissiveIntensity=0.1+v*1.2;}
+barGroup.rotation.y=t*0.05;
+const wpos=waveGeo.attributes.position;for(let i=0;i<WAVE_PTS;i++){const angle=(i/WAVE_PTS)*Math.PI*2;const v=(timeData[Math.floor(i*timeData.length/WAVE_PTS)]/128.0-1.0);const r=3.5+v*3;wpos.setX(i,Math.cos(angle)*r);wpos.setY(i,v*1.8+1.5);wpos.setZ(i,Math.sin(angle)*r);}wpos.needsUpdate=true;
+const rms=Math.sqrt(floatData.reduce((s,v)=>s+v*v,0)/floatData.length);const sc=1+rms*6;sphere.scale.setScalar(sc);wfMesh.scale.setScalar(sc);sphereMat.emissiveIntensity=0.4+rms*8;pointLight.intensity=3+rms*25;
+camAngle+=0.0025;camera.position.x=Math.sin(camAngle)*7;camera.position.z=30+Math.cos(camAngle*0.5)*5;camera.lookAt(0,2,0);
+const pitch=detectPitch(floatData,audioCtx.sampleRate);if(pitch>20&&pitch<4200){freqVal.innerHTML=`${pitch.toFixed(1)}<span class="metric-unit">Hz</span>`;noteVal.textContent=freqToNote(pitch);freqVal.classList.add('active');}else{freqVal.innerHTML=`—<span class="metric-unit">Hz</span>`;noteVal.textContent='—';freqVal.classList.remove('active');}
+if(rms>0.0001){dbVal.innerHTML=`${Math.round(20*Math.log10(rms))}<span class="metric-unit">dB</span>`;dbVal.classList.add('active');}else{dbVal.innerHTML=`—<span class="metric-unit">dB</span>`;dbVal.classList.remove('active');}
+drawSpectrum(freqData,audioCtx.sampleRate);renderer.render(scene,camera);}tick();}
 
-            for (let i = Math.floor(analyser.frequencyBinCount * 0.02); i < analyser.frequencyBinCount; i++) {
-                if (dataArray[i] > maxValue && dataArray[i] > noiseFloor) {
-                    maxValue = dataArray[i];
-                    maxIndex = i;
-                }
-            }
-
-            const nyquist = audioContext.sampleRate / 2;
-            const freq = (maxIndex * nyquist) / analyser.frequencyBinCount;
-
-            const rms = Math.sqrt(dataArray.reduce((sum, val) => sum + (val / 255) ** 2, 0) / dataArray.length);
-            const db = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
-
-            if (maxValue > noiseFloor) {
-                document.getElementById('freqValue').textContent = freq.toFixed(1);
-                document.getElementById('noteDisplay').textContent = getNote(freq);
-            } else {
-                document.getElementById('freqValue').textContent = '0';
-                document.getElementById('noteDisplay').textContent = '−';
-            }
-            
-            document.getElementById('dbValue').textContent = isFinite(db) ? db.toFixed(1) : '-∞';
-
-            drawSpectrum(dataArray);
-
-            animationId = requestAnimationFrame(analyze);
-        }
-
-        function drawSpectrum(dataArray) {
-            const canvas = document.getElementById('spectrumCanvas');
-            if (!canvas) return;
-            
-            const ctx = canvas.getContext('2d');
-            const width = canvas.offsetWidth;
-            const height = canvas.offsetHeight;
-
-            canvas.width = width * window.devicePixelRatio;
-            canvas.height = height * window.devicePixelRatio;
-            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-
-            // 背景
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, width, height);
-
-            // グリッド
-            ctx.strokeStyle = '#f0f0f0';
-            ctx.lineWidth = 1;
-            for (let i = 1; i < 10; i++) {
-                const y = (height / 10) * i;
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(width, y);
-                ctx.stroke();
-            }
-
-            // スペクトラム
-            const binSkip = Math.max(1, Math.floor(dataArray.length / 120));
-            const barWidth = Math.max(1, width / (dataArray.length / binSkip) - 0.5);
-            
-            for (let i = 0; i < dataArray.length; i += binSkip) {
-                const barHeight = (dataArray[i] / 255) * height;
-                
-                ctx.fillStyle = '#000000';
-                ctx.fillRect((i / binSkip) * (barWidth + 0.5), height - barHeight, barWidth, barHeight);
-            }
-
-            // 枠線
-            ctx.strokeStyle = '#e5e5e5';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(0, 0, width, height);
-        }
-
-        // DOM読み込み完了後に初期化
-        function initializeApp() {
-            logDebug('アプリ初期化中...');
-            const micButton = document.getElementById('micButton');
-            const stopButton = document.getElementById('stopButton');
-            
-            if (micButton && stopButton) {
-                micButton.addEventListener('click', () => {
-                    startMicrophone();
-                });
-
-                stopButton.addEventListener('click', () => {
-                    stopAudio();
-                });
-
-                window.addEventListener('beforeunload', () => {
-                    stopAudio();
-                });
-
-                document.addEventListener('visibilitychange', () => {
-                    if (document.hidden && analyser) {
-                        stopAudio();
-                    }
-                });
-
-                updateStatus(false);
-                logDebug('準備完了 - マイク開始ボタンをタップしてください');
-            } else {
-                logDebug('エラー: 要素が見つかりません');
-            }
-        }
-
-        // DOMContentLoaded時に実行
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeApp);
-        } else {
-            initializeApp();
-        }
-    </script>
+async function start(){try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});audioCtx=new(window.AudioContext||window.webkitAudioContext)();analyser=audioCtx.createAnalyser();analyser.fftSize=4096;analyser.smoothingTimeConstant=0.82;source=audioCtx.createMediaStreamSource(stream);source.connect(analyser);startBtn.disabled=true;stopBtn.disabled=false;statusDot.classList.add('active');statusText.textContent='Listening…';startLoop();}catch(e){statusText.textContent='Microphone access denied';console.error(e);}}
+function stop(){cancelAnimationFrame(animId);if(source)source.disconnect();if(audioCtx)audioCtx.close();if(stream)stream.getTracks().forEach(t=>t.stop());startBtn.disabled=false;stopBtn.disabled=true;statusDot.classList.remove('active');statusText.textContent='Stopped';freqVal.innerHTML=`—<span class="metric-unit">Hz</span>`;dbVal.innerHTML=`—<span class="metric-unit">dB</span>`;noteVal.textContent='—';[freqVal,dbVal].forEach(el=>el.classList.remove('active'));idleLoop();}
+// Theme toggle
+let isLight=false;
+const themeBtn=document.getElementById('themeBtn');
+themeBtn.addEventListener('click',()=>{
+  isLight=!isLight;
+  document.body.classList.toggle('light',isLight);
+  themeBtn.textContent=isLight?'Night Mode':'Light Mode';
+  const bgColor=isLight?0xe8ecf2:0x060810;
+  renderer.setClearColor(bgColor,1);
+  scene.fog.color.setHex(isLight?0xe8ecf2:0x060810);
+  scene.children.forEach(c=>{if(c.isGridHelper){scene.remove(c);}});
+  scene.add(new THREE.GridHelper(60,35,isLight?0xc8d0dc:0x111a25,isLight?0xd4dbe6:0x0b1018));
+});
+startBtn.addEventListener('click',start);stopBtn.addEventListener('click',stop);
+</script>
 </body>
 </html>
