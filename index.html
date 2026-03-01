@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="周波数測定器">
+    <meta name="theme-color" content="#ffffff">
+    <title>周波数測定器</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23ffffff' width='192' height='192'/><circle cx='96' cy='96' r='50' fill='%23000000'/></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #ffffff;
+            color: #000;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            padding-left: max(20px, env(safe-area-inset-left));
+            padding-right: max(20px, env(safe-area-inset-right));
+            padding-top: max(20px, env(safe-area-inset-top));
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+        }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            visibility: visible;
+        }
+
+        .header {
+            text-align: center;
+        }
+
+        h1 {
+            font-size: clamp(28px, 6vw, 32px);
+            font-weight: 500;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: clamp(13px, 3vw, 14px);
+            color: #666;
+            font-weight: 400;
+            letter-spacing: 0px;
+        }
+
+        .status {
+            font-size: 13px;
+            color: #999;
+            text-align: center;
+            height: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .status.active {
+            color: #000;
+        }
+
+        .display-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .display-card {
+            background: #f5f5f5;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 20px 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .display-card:hover {
+            border-color: #d5d5d5;
+            background: #fafafa;
+        }
+
+        .card-label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .card-value {
+            font-size: clamp(32px, 9vw, 40px);
+            font-weight: 500;
+            letter-spacing: -1px;
+            line-height: 1;
+            margin-bottom: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .card-unit {
+            font-size: 12px;
+            color: #999;
+            font-weight: 400;
+        }
+
+        .card-note {
+            font-size: clamp(16px, 5vw, 20px);
+            font-weight: 500;
+            margin-top: 8px;
+        }
+
+        .chart-container {
+            background: #f5f5f5;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 16px;
+            height: 200px;
+            transition: all 0.3s ease;
+        }
+
+        .chart-container:hover {
+            border-color: #d5d5d5;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 8px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 140px;
+            padding: 12px 16px;
+            background: #000;
+            color: #fff;
+            border: 1px solid #000;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        button:active {
+            transform: scale(0.98);
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+        }
+
+        button:disabled {
+            background: #f0f0f0;
+            color: #999;
+            border-color: #e5e5e5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                gap: 24px;
+            }
+
+            .display-grid {
+                gap: 12px;
+            }
+
+            .display-card {
+                padding: 16px 12px;
+            }
+
+            .chart-container {
+                height: 180px;
+            }
+
+            button {
+                min-width: 120px;
+                padding: 10px 14px;
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .container {
+                gap: 20px;
+            }
+
+            .display-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            button {
+                flex-basis: 100%;
+                min-width: auto;
+            }
+        }
+
+        /* スクロール対応 */
+        body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        body::-webkit-scrollbar-track {
+            background: #f5f5f5;
+        }
+
+        body::-webkit-scrollbar-thumb {
+            background: #d5d5d5;
+            border-radius: 3px;
+        }
+
+        body::-webkit-scrollbar-thumb:hover {
+            background: #bbb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>周波数測定器</h1>
+            <p class="subtitle">リアルタイム周波数解析</p>
+        </div>
+
+        <div class="status" id="status">準備完了</div>
+
+        <div class="display-grid">
+            <div class="display-card">
+                <div class="card-label">周波数</div>
+                <div class="card-value" id="freqValue">0</div>
+                <div class="card-unit">Hz</div>
+                <div class="card-note" id="noteDisplay">-</div>
+            </div>
+            <div class="display-card">
+                <div class="card-label">音量</div>
+                <div class="card-value" id="dbValue">-∞</div>
+                <div class="card-unit">dB</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="spectrumCanvas"></canvas>
+        </div>
+
+        <div class="controls">
+            <button id="micButton">マイク開始</button>
+            <button id="stopButton" disabled>停止</button>
+        </div>
+
+        <div id="debugMessage" style="font-size: 12px; color: #999; text-align: center; min-height: 20px; margin-top: 12px;"></div>
+    </div>
+
+    <script>
+        // デバッグ情報
+        console.log('周波数測定器 - 初期化開始');
+        
+        let audioContext;
+        let analyser;
+        let microphone;
+        let mediaStream;
+        let animationId;
+        const fftSize = 2048;
+
+        const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const a4 = 440;
+
+        function logDebug(msg) {
+            console.log(msg);
+            const debugEl = document.getElementById('debugMessage');
+            if (debugEl) {
+                debugEl.textContent = msg;
+            }
+        }
+
+        function getNote(freq) {
+            if (freq < 20) return '−';
+            const semitones = 12 * Math.log2(freq / a4);
+            const noteNumber = Math.round(semitones) + 57;
+            const noteIndex = ((noteNumber - 1) % 12 + 12) % 12;
+            const octave = Math.floor((noteNumber - 1) / 12);
+            return notes[noteIndex] + octave;
+        }
+
+        async function initAudioContext() {
+            try {
+                logDebug('AudioContext初期化中...');
+                if (!audioContext) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    audioContext = new AudioContextClass();
+                    logDebug('AudioContext作成完了');
+                }
+                
+                if (audioContext.state === 'suspended') {
+                    logDebug('AudioContext再開中...');
+                    await audioContext.resume();
+                    logDebug('AudioContext再開完了');
+                }
+                
+                if (!analyser) {
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = fftSize;
+                    analyser.smoothingTimeConstant = 0.85;
+                    logDebug('Analyser作成完了');
+                }
+                return audioContext;
+            } catch (error) {
+                logDebug('AudioContext初期化エラー: ' + error.message);
+                throw error;
+            }
+        }
+
+        async function startMicrophone() {
+            try {
+                logDebug('マイクアクセス要求中...');
+                await initAudioContext();
+                
+                logDebug('マイク許可ダイアログを表示しています...');
+                
+                const audioConstraints = {
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                };
+
+                mediaStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+                logDebug('マイクアクセス許可されました');
+                
+                // MediaStreamAudioSourceの作成
+                if (!microphone && mediaStream) {
+                    try {
+                        microphone = audioContext.createMediaStreamAudioSource(mediaStream);
+                        logDebug('MediaStreamAudioSource作成完了');
+                    } catch (sourceError) {
+                        logDebug('MediaStreamAudioSource作成エラー: ' + sourceError.message);
+                        throw sourceError;
+                    }
+                }
+                
+                if (microphone && analyser) {
+                    microphone.connect(analyser);
+                    logDebug('マイク接続完了');
+                } else {
+                    throw new Error('microphone or analyser is null');
+                }
+                
+                updateStatus(true);
+                analyze();
+            } catch (error) {
+                console.error('マイクエラー:', error);
+                let errorMsg = 'エラー: ';
+                
+                if (error.name === 'NotAllowedError') {
+                    errorMsg += 'マイクアクセスが拒否されました';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg += 'マイクが見つかりません';
+                } else if (error.name === 'NotReadableError') {
+                    errorMsg += 'マイクが使用中です';
+                } else if (error.name === 'SecurityError') {
+                    errorMsg += 'セキュリティエラー (HTTPSが必要です)';
+                } else {
+                    errorMsg += error.message;
+                }
+                
+                logDebug(errorMsg);
+                alert(errorMsg);
+                updateStatus(false);
+            }
+        }
+
+        function stopAudio() {
+            if (microphone) {
+                microphone.disconnect();
+                microphone = null;
+            }
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => {
+                    track.stop();
+                });
+                mediaStream = null;
+            }
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            updateStatus(false);
+            logDebug('停止しました');
+        }
+
+        function updateStatus(isActive) {
+            const status = document.getElementById('status');
+            if (status) {
+                if (isActive) {
+                    status.textContent = '測定中';
+                    status.classList.add('active');
+                    document.getElementById('micButton').disabled = true;
+                    document.getElementById('stopButton').disabled = false;
+                } else {
+                    status.textContent = '準備完了';
+                    status.classList.remove('active');
+                    document.getElementById('micButton').disabled = false;
+                    document.getElementById('stopButton').disabled = true;
+                    document.getElementById('freqValue').textContent = '0';
+                    document.getElementById('noteDisplay').textContent = '−';
+                    document.getElementById('dbValue').textContent = '-∞';
+                }
+            }
+        }
+
+        function analyze() {
+            if (!analyser) return;
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+
+            let maxValue = 0;
+            let maxIndex = 0;
+            const noiseFloor = 20;
+
+            for (let i = Math.floor(analyser.frequencyBinCount * 0.02); i < analyser.frequencyBinCount; i++) {
+                if (dataArray[i] > maxValue && dataArray[i] > noiseFloor) {
+                    maxValue = dataArray[i];
+                    maxIndex = i;
+                }
+            }
+
+            const nyquist = audioContext.sampleRate / 2;
+            const freq = (maxIndex * nyquist) / analyser.frequencyBinCount;
+
+            const rms = Math.sqrt(dataArray.reduce((sum, val) => sum + (val / 255) ** 2, 0) / dataArray.length);
+            const db = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+
+            if (maxValue > noiseFloor) {
+                document.getElementById('freqValue').textContent = freq.toFixed(1);
+                document.getElementById('noteDisplay').textContent = getNote(freq);
+            } else {
+                document.getElementById('freqValue').textContent = '0';
+                document.getElementById('noteDisplay').textContent = '−';
+            }
+            
+            document.getElementById('dbValue').textContent = isFinite(db) ? db.toFixed(1) : '-∞';
+
+            drawSpectrum(dataArray);
+
+            animationId = requestAnimationFrame(analyze);
+        }
+
+        function drawSpectrum(dataArray) {
+            const canvas = document.getElementById('spectrumCanvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+
+            canvas.width = width * window.devicePixelRatio;
+            canvas.height = height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            // 背景
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+
+            // グリッド
+            ctx.strokeStyle = '#f0f0f0';
+            ctx.lineWidth = 1;
+            for (let i = 1; i < 10; i++) {
+                const y = (height / 10) * i;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+
+            // スペクトラム
+            const binSkip = Math.max(1, Math.floor(dataArray.length / 120));
+            const barWidth = Math.max(1, width / (dataArray.length / binSkip) - 0.5);
+            
+            for (let i = 0; i < dataArray.length; i += binSkip) {
+                const barHeight = (dataArray[i] / 255) * height;
+                
+                ctx.fillStyle = '#000000';
+                ctx.fillRect((i / binSkip) * (barWidth + 0.5), height - barHeight, barWidth, barHeight);
+            }
+
+            // 枠線
+            ctx.strokeStyle = '#e5e5e5';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(0, 0, width, height);
+        }
+
+        // DOM読み込み完了後に初期化
+        function initializeApp() {
+            logDebug('アプリ初期化中...');
+            const micButton = document.getElementById('micButton');
+            const stopButton = document.getElementById('stopButton');
+            
+            if (micButton && stopButton) {
+                micButton.addEventListener('click', () => {
+                    startMicrophone();
+                });
+
+                stopButton.addEventListener('click', () => {
+                    stopAudio();
+                });
+
+                window.addEventListener('beforeunload', () => {
+                    stopAudio();
+                });
+
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden && analyser) {
+                        stopAudio();
+                    }
+                });
+
+                updateStatus(false);
+                logDebug('準備完了 - マイク開始ボタンをタップしてください');
+            } else {
+                logDebug('エラー: 要素が見つかりません');
+            }
+        }
+
+        // DOMContentLoaded時に実行
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+    </script>
+</body>
+</html>
