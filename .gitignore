@@ -1,3 +1,4 @@
 .DS_Store
 frequency-analyzer/
 node_modules/
+.claude/settings.local.json
