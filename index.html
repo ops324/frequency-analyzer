@@ -13,36 +13,36 @@
   :root{
     --bg:#04060b;
     --clear:#04060b;
-    --panel:rgba(13,17,26,0.46);
-    --panel-strong:rgba(13,17,26,0.72);
-    --border:rgba(255,255,255,0.09);
-    --hairline:rgba(255,255,255,0.08);
-    --text:#eef1f7;
-    --text-dim:#8b93a7;
-    --text-faint:#4d5568;
+    --panel:rgba(11,15,23,0.62);
+    --panel-strong:rgba(9,12,19,0.86);
+    --border:rgba(255,255,255,0.14);
+    --hairline:rgba(255,255,255,0.13);
+    --text:#f1f3f8;
+    --text-dim:#a3abbd;
+    --text-faint:#7b8499;
     --amber:#f2c17d;
     --amber-bright:#ffd79c;
-    --cool:#5fb4d6;
-    --mint:#57e0a0;
-    --shadow:0 30px 80px -30px rgba(0,0,0,0.8);
+    --cool:#7cc4e2;
+    --mint:#5fe3a4;
+    --shadow:0 36px 90px -28px rgba(0,0,0,0.85);
     --font-display:'Fraunces',Georgia,'Times New Roman',serif;
     --font-mono:'Geist Mono','JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
   }
   .light{
-    --bg:#ece6da;
-    --clear:#e7e0d2;
-    --panel:rgba(255,255,255,0.55);
-    --panel-strong:rgba(255,255,255,0.78);
-    --border:rgba(28,24,18,0.12);
-    --hairline:rgba(28,24,18,0.10);
+    --bg:#e4ddcd;
+    --clear:#d8cfba;
+    --panel:rgba(252,250,245,0.88);
+    --panel-strong:rgba(252,250,245,0.96);
+    --border:rgba(40,33,22,0.20);
+    --hairline:rgba(40,33,22,0.16);
     --text:#1a1712;
-    --text-dim:#6a6256;
-    --text-faint:#a59c8c;
-    --amber:#b5701a;
-    --amber-bright:#9c5e10;
-    --cool:#2a7ba0;
-    --mint:#1a9c62;
-    --shadow:0 30px 70px -34px rgba(60,50,30,0.5);
+    --text-dim:#5f584b;
+    --text-faint:#6f6654;
+    --amber:#a4630f;
+    --amber-bright:#8a5208;
+    --cool:#256f93;
+    --mint:#0f8a55;
+    --shadow:0 30px 70px -30px rgba(60,48,24,0.42);
   }
 
   html,body{height:100%}
@@ -369,13 +369,14 @@ const camera=new THREE.PerspectiveCamera(56,window.innerWidth/window.innerHeight
 const camBase=new THREE.Vector3(0,7,30);
 camera.position.copy(camBase);camera.lookAt(0,3,0);
 
-scene.add(new THREE.AmbientLight(0x223044,1.4));
+const ambient=new THREE.AmbientLight(0x223044,1.4);scene.add(ambient);
 const keyLight=new THREE.PointLight(0xf2c17d,3,80);keyLight.position.set(0,10,2);scene.add(keyLight);
 const coolLight=new THREE.PointLight(0x5fb4d6,2.2,70);coolLight.position.set(-14,5,-10);scene.add(coolLight);
 const rimLight=new THREE.DirectionalLight(0xffd79c,0.8);rimLight.position.set(6,12,8);scene.add(rimLight);
 
 const WARM=new THREE.Color(0xf2c17d),COOL=new THREE.Color(0x5fb4d6);
 const root=new THREE.Group();scene.add(root);
+const allBars=[];
 
 /* radial bars (two rings) */
 function makeRing(count,radius,size,satMix){
@@ -383,12 +384,13 @@ function makeRing(count,radius,size,satMix){
   for(let i=0;i<count;i++){
     const t=i/(count-1);
     const col=WARM.clone().lerp(COOL,t);
-    const mat=new THREE.MeshStandardMaterial({color:col,emissive:col.clone().multiplyScalar(satMix),emissiveIntensity:0.6,roughness:0.3,metalness:0.55});
+    const mat=new THREE.MeshStandardMaterial({color:col.clone(),emissive:col.clone(),emissiveIntensity:0.6,roughness:0.3,metalness:0.55});
     const mesh=new THREE.Mesh(new THREE.BoxGeometry(size,1,size),mat);
+    mesh.userData.base=col.clone();
     const a=(i/count)*Math.PI*2;
     mesh.position.set(Math.cos(a)*radius,0.5,Math.sin(a)*radius);
     mesh.rotation.y=-a;
-    grp.add(mesh);arr.push(mesh);
+    grp.add(mesh);arr.push(mesh);allBars.push(mesh);
   }
   return {arr,grp};
 }
@@ -418,12 +420,46 @@ scene.add(stars);
 /* floor grid */
 let grid=new THREE.GridHelper(120,48,0x16202e,0x0c121b);grid.position.y=-0.02;scene.add(grid);
 
-/* composer + bloom */
+/* composer + bloom — high threshold so ONLY bright emissive parts glow (blacks stay black) */
 const composer=new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene,camera));
-const bloom=new UnrealBloomPass(new THREE.Vector2(window.innerWidth,window.innerHeight),0.85,0.6,0.0);
+const bloom=new UnrealBloomPass(new THREE.Vector2(window.innerWidth,window.innerHeight),0.55,0.45,0.6);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
+
+/* ---------------- Theme-aware rendering ---------------- */
+let themeLight=false,emissiveMul=1.0,lightMul=1.0,bloomBase=0.5;
+function applyTheme(light){
+  themeLight=light;
+  const bg=light?0xd8cfba:0x04060b;
+  clearColor.setHex(bg);renderer.setClearColor(clearColor,1);scene.fog.color.setHex(bg);
+  scene.fog.density=light?0.030:0.020;
+  renderer.toneMappingExposure=light?0.95:1.12;
+  bloom.threshold=light?0.92:0.55;   // light bg is bright, so only the very brightest glow
+  bloom.radius=light?0.3:0.45;
+  bloomBase=light?0.10:0.5;
+  lightMul=light?0.45:1.0;
+  emissiveMul=light?0.28:1.0;
+  coolLight.intensity=2.2*lightMul;
+  rimLight.intensity=light?0.5:0.8;
+  ambient.color.setHex(light?0xa99f88:0x223044);
+  ambient.intensity=light?1.6:1.4;
+  allBars.forEach(m=>{
+    const b=m.userData.base;
+    if(light){m.material.color.copy(b).multiplyScalar(0.5);m.material.emissive.copy(b).multiplyScalar(0.55);m.material.metalness=0.25;m.material.roughness=0.55;}
+    else{m.material.color.copy(b);m.material.emissive.copy(b);m.material.metalness=0.55;m.material.roughness=0.3;}
+  });
+  core.material.color.setHex(light?0x123026:0x0e2018);
+  coreWire.material.color.setHex(light?0x2c895f:0x6de8b0);
+  coreWire.material.opacity=light?0.32:0.18;
+  waveLine.material.color.setHex(light?0x167a4f:0x9be8c6);
+  waveLine.material.opacity=light?0.7:0.85;
+  stars.material.color.setHex(light?0x6b6354:0x9fb4d6);
+  stars.material.opacity=light?0.18:0.55;
+  scene.remove(grid);
+  grid=new THREE.GridHelper(120,48,light?0xa89a78:0x16202e,light?0xc0b390:0x0c121b);
+  grid.position.y=-0.02;scene.add(grid);
+}
 
 function resize(){
   const w=window.innerWidth,h=window.innerHeight;
@@ -452,8 +488,13 @@ function drawSpectrum(fd,sr){
     const v=fd[idx]/255;const bh=Math.max(2,v*H);
     const x=i*(bw+gap);
     const grad=sctx.createLinearGradient(0,H,0,H-bh);
-    grad.addColorStop(0,`rgba(95,180,214,${0.25+v*0.4})`);
-    grad.addColorStop(1,`rgba(242,193,125,${0.5+v*0.5})`);
+    if(themeLight){
+      grad.addColorStop(0,`rgba(37,111,147,${0.5+v*0.4})`);
+      grad.addColorStop(1,`rgba(164,99,15,${0.7+v*0.3})`);
+    }else{
+      grad.addColorStop(0,`rgba(95,180,214,${0.25+v*0.4})`);
+      grad.addColorStop(1,`rgba(242,193,125,${0.5+v*0.5})`);
+    }
     sctx.fillStyle=grad;
     sctx.fillRect(x,H-bh,bw,bh);
   }
@@ -538,11 +579,11 @@ function frame(now){
         target=(Math.sin(t*speed+i*phase)*0.5+0.5)*maxH*0.4+0.08; // idle breathing
       }
       const m=a[i];m.scale.y+=(target-m.scale.y)*0.2;m.position.y=m.scale.y*0.5;
-      m.material.emissiveIntensity=0.25+ (m.scale.y/maxH)*1.6;
+      m.material.emissiveIntensity=(0.25+(m.scale.y/maxH)*1.6)*emissiveMul;
     }
   };
-  drive(ringA,running?14:1.4,1.1,0.16);
-  drive(ringB,running?9:1.0,1.7,0.22);
+  drive(ringA,running?14:2.4,1.1,0.16);
+  drive(ringB,running?9:1.6,1.7,0.22);
   root.rotation.y=t*(running?0.05:0.04);
 
   /* waveform ring */
@@ -563,8 +604,8 @@ function frame(now){
   disp.coreScale=lerp(disp.coreScale,targetCore,0.12);
   core.scale.setScalar(disp.coreScale);coreWire.scale.setScalar(disp.coreScale);
   core.rotation.y+=dt*0.3;core.rotation.x+=dt*0.12;coreWire.rotation.y-=dt*0.2;
-  core.material.emissiveIntensity=lerp(core.material.emissiveIntensity,0.5+rms*4,0.1);
-  keyLight.intensity=lerp(keyLight.intensity,3+rms*14,0.1);
+  core.material.emissiveIntensity=lerp(core.material.emissiveIntensity,(0.5+rms*4)*emissiveMul,0.1);
+  keyLight.intensity=lerp(keyLight.intensity,(3+rms*14)*lightMul,0.1);
   stars.rotation.y+=dt*0.012;
 
   /* camera dolly + parallax */
@@ -575,8 +616,8 @@ function frame(now){
   camera.position.z=camBase.z + Math.cos(orbit*0.6)*3;
   camera.lookAt(0,3,0);
 
-  /* bloom reacts */
-  disp.bloom=lerp(disp.bloom,running?0.7+rms*0.9:0.85,0.08);
+  /* bloom reacts (kept low; threshold confines it to highlights) */
+  disp.bloom=lerp(disp.bloom,bloomBase+(running?rms*0.5:0),0.08);
   bloom.strength=disp.bloom;
 
   if(running&&freqData)drawSpectrum(freqData,audioCtx.sampleRate);
@@ -619,17 +660,12 @@ requestAnimationFrame(frame);
 
 /* ---------------- Theme ---------------- */
 let light=false;
+applyTheme(false);
 $('themeBtn').addEventListener('click',()=>{
   light=!light;
   document.body.classList.toggle('light',light);
   $('themeBtn').textContent=light?'Night Mode':'Day Mode';
-  const bg=light?0xe7e0d2:0x04060b;
-  clearColor.setHex(bg);renderer.setClearColor(clearColor,1);scene.fog.color.setHex(bg);
-  scene.remove(grid);
-  grid=new THREE.GridHelper(120,48,light?0xbcae93:0x16202e,light?0xcfc4ad:0x0c121b);
-  grid.position.y=-0.02;scene.add(grid);
-  stars.material.opacity=light?0.25:0.55;
-  renderer.toneMappingExposure=light?1.0:1.15;
+  applyTheme(light);
 });
 
 /* ---------------- Controls ---------------- */
