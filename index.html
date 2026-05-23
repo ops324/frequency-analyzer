@@ -2,89 +2,320 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Frequency Analyzer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Frequency Analyzer — Observatory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..500&family=Geist+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@200;300;400&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  :root{--bg:#0a0c0f;--surface:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.07);--text-primary:#e8e6e1;--text-muted:#555;--accent:#4ecb8d;--viz-bg:#060810;--overlay-bg:#060810;--grid1:#111a25;--grid2:#0b1018}
-  .light{--bg:#f0f2f5;--surface:rgba(0,0,0,0.04);--border:rgba(0,0,0,0.09);--text-primary:#1a1a1a;--text-muted:#999;--accent:#2a9d6f;--viz-bg:#e8ecf2;--overlay-bg:#e8ecf2;--grid1:#c8d0dc;--grid2:#d4dbe6}
-  html,body{transition:background .3s,color .3s}
-  html,body{height:100%;background:var(--bg);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-weight:300;overflow-x:hidden}
-  .app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 20px 48px}
-  header{text-align:center;margin-bottom:32px}
-  .logo{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px}
-  h1{font-size:clamp(22px,4vw,34px);font-weight:200;letter-spacing:-.02em}
-  .viz-card{width:100%;max-width:780px;border-radius:20px;border:1px solid var(--border);overflow:hidden;background:var(--viz-bg);margin-bottom:16px;position:relative}
-  #threeCanvas{width:100%;height:380px;display:block}
-  .viz-overlay{position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(to top,var(--overlay-bg),transparent);pointer-events:none}
-  .metrics-card{width:100%;max-width:780px;background:var(--surface);border-radius:20px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px}
-  .metrics{display:grid;grid-template-columns:repeat(3,1fr)}
-  .metric{padding:20px 16px;text-align:center;border-right:1px solid var(--border)}
-  .metric:last-child{border-right:none}
-  .metric-label{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--text-muted);font-family:'DM Mono',monospace;margin-bottom:6px}
-  .metric-value{font-family:'DM Mono',monospace;font-size:clamp(18px,3.5vw,26px);font-weight:400;letter-spacing:-.02em;line-height:1;transition:color .2s}
-  .metric-unit{font-size:10px;color:var(--text-muted);margin-left:2px}
-  .metric-value.active{color:var(--accent)}
-  .spectrum-wrap{padding:16px 20px 20px;border-top:1px solid var(--border)}
-  .spectrum-label{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--text-muted);font-family:'DM Mono',monospace;margin-bottom:10px}
-  #spectrumCanvas{width:100%;height:64px;display:block;border-radius:6px}
-  .controls{width:100%;max-width:780px;display:flex;gap:12px;align-items:center;justify-content:center}
-  .btn{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;padding:13px 28px;border-radius:100px;border:1px solid rgba(255,255,255,.15);background:transparent;color:var(--text-primary);cursor:pointer;transition:all .2s}
-  .btn:hover{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.05)}
-  .btn.primary{background:var(--accent);border-color:var(--accent);color:#050706;font-weight:500}
-  .btn.primary:hover{background:#3db87a}
-  .btn:disabled{opacity:.3;cursor:default;pointer-events:none}
-  .status-row{margin-top:16px;display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:.1em}
-  .status-dot{width:5px;height:5px;border-radius:50%;background:var(--text-muted);transition:background .3s}
-  .status-dot.active{background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 1.4s ease-in-out infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-  .theme-btn{position:fixed;top:20px;right:20px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:8px 16px;border-radius:100px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;transition:all .2s;z-index:100}
-  .theme-btn:hover{color:var(--text-primary);border-color:var(--text-primary)}
-  @media(max-width:480px){#threeCanvas{height:260px}.metric{padding:14px 8px}.metric-value{font-size:16px}}
+
+  :root{
+    --bg:#04060b;
+    --clear:#04060b;
+    --panel:rgba(13,17,26,0.46);
+    --panel-strong:rgba(13,17,26,0.72);
+    --border:rgba(255,255,255,0.09);
+    --hairline:rgba(255,255,255,0.08);
+    --text:#eef1f7;
+    --text-dim:#8b93a7;
+    --text-faint:#4d5568;
+    --amber:#f2c17d;
+    --amber-bright:#ffd79c;
+    --cool:#5fb4d6;
+    --mint:#57e0a0;
+    --shadow:0 30px 80px -30px rgba(0,0,0,0.8);
+    --font-display:'Fraunces',Georgia,'Times New Roman',serif;
+    --font-mono:'Geist Mono','JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  }
+  .light{
+    --bg:#ece6da;
+    --clear:#e7e0d2;
+    --panel:rgba(255,255,255,0.55);
+    --panel-strong:rgba(255,255,255,0.78);
+    --border:rgba(28,24,18,0.12);
+    --hairline:rgba(28,24,18,0.10);
+    --text:#1a1712;
+    --text-dim:#6a6256;
+    --text-faint:#a59c8c;
+    --amber:#b5701a;
+    --amber-bright:#9c5e10;
+    --cool:#2a7ba0;
+    --mint:#1a9c62;
+    --shadow:0 30px 70px -34px rgba(60,50,30,0.5);
+  }
+
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-mono);
+    font-weight:300;
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+    transition:background .6s ease,color .6s ease;
+  }
+
+  /* ---- 3D stage ---- */
+  #bgCanvas{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
+
+  .vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 38%,transparent 38%,rgba(0,0,0,0.35) 78%,rgba(0,0,0,0.72) 100%);
+    transition:opacity .6s ease}
+  .light .vignette{background:radial-gradient(120% 90% at 50% 38%,transparent 45%,rgba(120,108,84,0.10) 80%,rgba(90,78,52,0.22) 100%)}
+
+  .grain{position:fixed;inset:-50%;z-index:2;pointer-events:none;opacity:.045;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation:grain 1.2s steps(4) infinite}
+  @keyframes grain{
+    0%{transform:translate(0,0)}25%{transform:translate(-4%,3%)}50%{transform:translate(3%,-4%)}75%{transform:translate(-3%,-2%)}100%{transform:translate(2%,3%)}
+  }
+
+  /* ---- HUD corners ---- */
+  .hud{position:fixed;z-index:6;font-family:var(--font-mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--text-faint);pointer-events:none;line-height:1.7}
+  .hud .accent{color:var(--text-dim)}
+  .hud-tl{top:26px;left:28px}
+  .hud-bl{bottom:26px;left:28px}
+  .hud-br{bottom:26px;right:28px;text-align:right}
+  .brand-mark{display:flex;align-items:center;gap:9px;margin-bottom:2px}
+  .brand-dot{width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 12px var(--amber)}
+  .brand-name{font-family:var(--font-display);font-weight:400;font-size:15px;letter-spacing:.01em;color:var(--text);text-transform:none}
+
+  .theme-btn{position:fixed;top:24px;right:28px;z-index:7;font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+    padding:9px 15px;border-radius:100px;border:1px solid var(--border);background:var(--panel);color:var(--text-dim);
+    cursor:pointer;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:color .25s,border-color .25s,background .25s}
+  .theme-btn:hover{color:var(--text);border-color:var(--text-dim)}
+  .theme-btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+
+  /* ---- Console ---- */
+  .console{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:5;width:min(960px,calc(100vw - 40px));
+    background:linear-gradient(180deg,var(--panel),var(--panel-strong));
+    border:1px solid var(--border);border-radius:22px;box-shadow:var(--shadow);
+    backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);
+    overflow:hidden}
+  .console::before{content:"";position:absolute;inset:0;border-radius:22px;pointer-events:none;
+    background:linear-gradient(180deg,rgba(255,255,255,0.06),transparent 30%)}
+  .console-grid{display:grid;grid-template-columns:1.05fr 1.15fr 1.25fr;align-items:stretch}
+  .zone{padding:20px 22px;position:relative}
+  .zone + .zone::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:1px;background:var(--hairline)}
+  .zone-label{font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--text-faint);margin-bottom:12px;font-weight:400}
+
+  /* tuner zone */
+  .zone-tuner{display:flex;flex-direction:column;align-items:center}
+  .gauge-wrap{position:relative;width:100%;max-width:230px;margin-top:2px}
+  .gauge{width:100%;height:auto;display:block;overflow:visible}
+  .gauge-bg{fill:none;stroke:var(--hairline);stroke-width:2}
+  .gauge-arc{fill:none;stroke:var(--amber);stroke-width:4;stroke-linecap:round;
+    filter:drop-shadow(0 0 6px color-mix(in srgb,var(--amber) 55%,transparent));transition:stroke .3s}
+  .gauge-tick{stroke:var(--text-faint);stroke-width:1.5}
+  .gauge-tick.major{stroke:var(--text-dim);stroke-width:2}
+  .gauge-needle{stroke:var(--text);stroke-width:2.5;stroke-linecap:round;
+    filter:drop-shadow(0 0 5px color-mix(in srgb,var(--text) 40%,transparent))}
+  .gauge-hub{fill:var(--text)}
+  .gauge.intune .gauge-arc{stroke:var(--mint);filter:drop-shadow(0 0 10px color-mix(in srgb,var(--mint) 75%,transparent))}
+  .gauge.intune .gauge-needle{stroke:var(--mint);filter:drop-shadow(0 0 9px color-mix(in srgb,var(--mint) 70%,transparent))}
+  .gauge.intune .gauge-hub{fill:var(--mint)}
+  .gauge-center{position:absolute;left:0;right:0;bottom:8%;display:flex;flex-direction:column;align-items:center;pointer-events:none}
+  .note{font-family:var(--font-display);font-weight:400;font-size:clamp(34px,7vw,52px);line-height:.9;letter-spacing:-.01em;
+    font-variant-numeric:tabular-nums;color:var(--text);transition:color .3s}
+  .gauge-center.intune .note{color:var(--mint)}
+  .cents{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;color:var(--text-dim);margin-top:6px;font-variant-numeric:tabular-nums}
+  .intune-tag{margin-top:12px;font-size:9px;letter-spacing:.34em;text-transform:uppercase;color:var(--mint);
+    opacity:0;transform:translateY(4px);transition:opacity .3s,transform .3s}
+  .intune-tag.on{opacity:1;transform:none}
+
+  /* readouts zone */
+  .zone-readouts{display:flex;flex-direction:column;justify-content:center;gap:18px}
+  .big-num{font-family:var(--font-mono);font-weight:400;font-size:clamp(40px,8vw,62px);line-height:.92;letter-spacing:-.03em;
+    font-variant-numeric:tabular-nums;color:var(--text);display:flex;align-items:baseline;gap:8px;transition:color .3s}
+  .big-num.live{color:var(--amber)}
+  .mid-num{font-family:var(--font-mono);font-weight:400;font-size:clamp(22px,4vw,30px);letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums;color:var(--text);display:flex;align-items:baseline;gap:6px}
+  .unit{font-family:var(--font-mono);font-size:13px;font-weight:400;color:var(--text-faint);letter-spacing:0}
+
+  /* control zone */
+  .zone-control{display:flex;flex-direction:column}
+  .spectrum{width:100%;height:50px;display:block;border-radius:8px;margin-bottom:16px;flex:0 0 auto}
+  .transport{display:flex;align-items:center;gap:14px;margin-top:auto}
+  .listen-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:10px;
+    font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;
+    padding:13px 18px;border-radius:100px;cursor:pointer;border:1px solid transparent;
+    background:var(--amber);color:#0a0a0a;transition:filter .25s,transform .12s,background .3s,color .3s}
+  .listen-btn:hover{filter:brightness(1.08)}
+  .listen-btn:active{transform:scale(.98)}
+  .listen-btn:focus-visible{outline:2px solid var(--amber-bright);outline-offset:3px}
+  .listen-btn.running{background:transparent;color:var(--text);border-color:var(--border)}
+  .listen-btn.running:hover{border-color:var(--text-dim);filter:none}
+  .listen-btn svg{width:14px;height:14px}
+  .status{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);white-space:nowrap}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--text-faint);transition:background .3s,box-shadow .3s}
+  .dot.live{background:var(--mint);box-shadow:0 0 10px var(--mint);animation:pulse 1.5s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  /* ---- Intro overlay ---- */
+  .intro{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;
+    background:radial-gradient(120% 100% at 50% 45%,rgba(4,6,11,0.30),rgba(4,6,11,0.78) 70%,rgba(4,6,11,0.94));
+    transition:opacity .9s ease,visibility .9s}
+  .light .intro{background:radial-gradient(120% 100% at 50% 45%,rgba(231,224,210,0.30),rgba(231,224,210,0.82) 70%,rgba(231,224,210,0.96))}
+  .intro.hidden{opacity:0;visibility:hidden;pointer-events:none}
+  .intro-eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--amber);
+    opacity:0;animation:rise .9s .15s ease forwards}
+  .intro-title{font-family:var(--font-display);font-weight:300;font-size:clamp(40px,9vw,86px);line-height:1;letter-spacing:-.02em;margin:18px 0 14px;
+    opacity:0;animation:rise 1s .3s ease forwards}
+  .intro-title em{font-style:italic;font-weight:400;color:var(--amber)}
+  .intro-sub{max-width:440px;font-family:var(--font-mono);font-weight:300;font-size:13px;line-height:1.7;color:var(--text-dim);letter-spacing:.02em;
+    opacity:0;animation:rise 1s .45s ease forwards}
+  .start-btn{position:relative;margin-top:38px;width:128px;height:128px;border-radius:50%;cursor:pointer;
+    border:1px solid var(--border);background:var(--panel);color:var(--text);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    opacity:0;animation:rise 1s .6s ease forwards;transition:transform .25s,border-color .25s,background .25s}
+  .start-btn:hover{transform:scale(1.05);border-color:var(--amber)}
+  .start-btn:active{transform:scale(.99)}
+  .start-btn:focus-visible{outline:2px solid var(--amber);outline-offset:4px}
+  .start-btn::before,.start-btn::after{content:"";position:absolute;inset:0;border-radius:50%;border:1px solid var(--amber);opacity:.5;animation:ring 2.6s ease-out infinite}
+  .start-btn::after{animation-delay:1.3s}
+  @keyframes ring{0%{transform:scale(1);opacity:.45}100%{transform:scale(1.6);opacity:0}}
+  .start-btn .ico{width:26px;height:26px;color:var(--amber)}
+  .start-btn .lbl{font-family:var(--font-mono);font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--text-dim)}
+  .intro-note{margin-top:26px;font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);
+    opacity:0;animation:rise 1s .75s ease forwards}
+  .intro-note.error{color:#e98f7a;letter-spacing:.06em;text-transform:none;font-size:12px}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  /* console reveal */
+  .console,.hud,.theme-btn{opacity:0}
+  @keyframes riseConsole{from{opacity:0;transform:translate(-50%,16px)}to{opacity:1;transform:translateX(-50%)}}
+  .revealed .console{animation:riseConsole .9s .1s ease forwards}
+  .revealed .hud-tl{animation:rise .8s .25s ease forwards}
+  .revealed .hud-bl{animation:rise .8s .4s ease forwards}
+  .revealed .hud-br{animation:rise .8s .5s ease forwards}
+  .revealed .theme-btn{animation:rise .8s .3s ease forwards}
+
+  /* ---- responsive ---- */
+  @media(max-width:760px){
+    .console{bottom:14px;width:calc(100vw - 24px);border-radius:18px}
+    .console-grid{grid-template-columns:1fr 1fr}
+    .zone-control{grid-column:1 / -1;border-top:1px solid var(--hairline)}
+    .zone-control::before{display:none}
+    .hud-bl,.hud-br{display:none}
+    .gauge-wrap{max-width:180px}
+  }
+  @media(max-width:480px){
+    .console-grid{grid-template-columns:1fr}
+    .zone + .zone::before{display:none}
+    .zone + .zone{border-top:1px solid var(--hairline)}
+    .zone{padding:16px 18px}
+    .hud-tl{top:18px;left:18px}
+    .theme-btn{top:16px;right:18px}
+  }
+
+  @media(prefers-reduced-motion:reduce){
+    .grain{animation:none;opacity:.03}
+    .start-btn::before,.start-btn::after{animation:none;opacity:0}
+    .dot.live{animation:none}
+    .intro-eyebrow,.intro-title,.intro-sub,.start-btn,.intro-note,
+    .revealed .hud-tl,.revealed .hud-bl,.revealed .hud-br,.revealed .theme-btn{animation:none;opacity:1;transform:none}
+    .revealed .console{animation:none;opacity:1;transform:translateX(-50%)}
+  }
 </style>
 </head>
 <body>
-<button class="theme-btn" id="themeBtn">Night Mode</button>
-<div class="app">
-  <header>
-    <div class="logo">Audio Tool</div>
-    <h1>Frequency Analyzer</h1>
-  </header>
-  <div class="viz-card">
-    <canvas id="threeCanvas"></canvas>
-    <div class="viz-overlay"></div>
-  </div>
-  <div class="metrics-card">
-    <div class="metrics">
-      <div class="metric"><div class="metric-label">Frequency</div><div class="metric-value" id="freqVal">—<span class="metric-unit">Hz</span></div></div>
-      <div class="metric"><div class="metric-label">Volume</div><div class="metric-value" id="dbVal">—<span class="metric-unit">dB</span></div></div>
-      <div class="metric"><div class="metric-label">Note</div><div class="metric-value" id="noteVal">—</div></div>
-    </div>
-    <div class="spectrum-wrap">
-      <div class="spectrum-label">Spectrum</div>
-      <canvas id="spectrumCanvas"></canvas>
-    </div>
-  </div>
-  <div class="controls">
-    <button class="btn primary" id="startBtn">Start</button>
-    <button class="btn" id="stopBtn" disabled>Stop</button>
-  </div>
-  <div class="status-row">
-    <span class="status-dot" id="statusDot"></span>
-    <span id="statusText">Ready</span>
-  </div>
+<canvas id="bgCanvas"></canvas>
+<div class="vignette"></div>
+<div class="grain" id="grain"></div>
+
+<button class="theme-btn" id="themeBtn" aria-label="Toggle colour theme">Day Mode</button>
+
+<div class="hud hud-tl">
+  <div class="brand-mark"><span class="brand-dot"></span><span class="brand-name">Frequency Analyzer</span></div>
+  <div>Observatory Mode</div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
+<div class="hud hud-bl" id="hudBl"><span class="accent">SR</span> —— Hz · <span class="accent">FFT</span> 4096</div>
+<div class="hud hud-br" id="hudBr"><span class="accent">STATUS</span> Standby</div>
+
+<section class="console" id="console" aria-label="Analyzer console">
+  <div class="console-grid">
+    <div class="zone zone-tuner">
+      <div class="zone-label">Tuner</div>
+      <div class="gauge-wrap">
+        <svg class="gauge" id="gauge" viewBox="0 0 200 140" role="img" aria-label="Pitch tuning gauge">
+          <path class="gauge-bg" id="gaugeBg"></path>
+          <path class="gauge-arc" id="gaugeArc" d=""></path>
+          <g id="gaugeTicks"></g>
+          <g id="needleGroup"><line class="gauge-needle" x1="100" y1="118" x2="100" y2="46"></line></g>
+          <circle class="gauge-hub" cx="100" cy="118" r="4"></circle>
+        </svg>
+        <div class="gauge-center" id="gaugeCenter">
+          <div class="note" id="noteVal">—</div>
+          <div class="cents" id="centsVal">— cents</div>
+        </div>
+      </div>
+      <div class="intune-tag" id="intuneTag">In Tune</div>
+    </div>
+
+    <div class="zone zone-readouts">
+      <div>
+        <div class="zone-label">Frequency</div>
+        <div class="big-num" id="freqBig"><span id="freqVal">—</span><span class="unit">Hz</span></div>
+      </div>
+      <div>
+        <div class="zone-label">Volume</div>
+        <div class="mid-num"><span id="dbVal">—</span><span class="unit">dB</span></div>
+      </div>
+    </div>
+
+    <div class="zone zone-control">
+      <div class="zone-label">Spectrum</div>
+      <canvas class="spectrum" id="spectrumCanvas"></canvas>
+      <div class="transport">
+        <button class="listen-btn" id="listenBtn" aria-label="Start or stop listening">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+          <span id="listenLabel">Listen</span>
+        </button>
+        <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Ready</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="intro" id="intro">
+  <div class="intro-eyebrow">Real-time Acoustic Instrument</div>
+  <h1 class="intro-title">Frequency <em>Analyzer</em></h1>
+  <p class="intro-sub">A cinematic observatory for sound. Detects pitch, note &amp; tuning in real time and renders it as living light. Grant microphone access to begin.</p>
+  <button class="start-btn" id="startBtn" aria-label="Press to begin listening">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+    <span class="lbl">Press to listen</span>
+  </button>
+  <div class="intro-note" id="introNote">Best with headphones · uses your microphone locally</div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------------- Pitch / music helpers ---------------- */
 const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 function freqToNote(f){if(f<20)return'—';const n=Math.round(12*Math.log2(f/440)+69);return NOTE_NAMES[((n%12)+12)%12]+(Math.floor(n/12)-1);}
+function centsFromNearest(f){const m=12*Math.log2(f/440)+69;return (m-Math.round(m))*100;}
 function detectPitch(buf,sr){
   const SIZE=buf.length;
   const rms=Math.sqrt(buf.reduce((s,v)=>s+v*v,0)/SIZE);
   if(rms<0.003)return -1;
-  const maxLag=Math.floor(sr/60);
-  const minLag=Math.floor(sr/1400);
+  const maxLag=Math.floor(sr/60),minLag=Math.floor(sr/1400);
   const nsdf=new Float32Array(maxLag);
   for(let lag=minLag;lag<maxLag;lag++){
     let num=0,denom=0;
@@ -94,10 +325,7 @@ function detectPitch(buf,sr){
   let inValley=false,bestLag=-1,bestVal=-1;
   for(let lag=minLag+1;lag<maxLag-1;lag++){
     if(!inValley&&nsdf[lag]<0)inValley=true;
-    if(inValley&&nsdf[lag]>0.5&&nsdf[lag]>nsdf[lag-1]&&nsdf[lag]>=nsdf[lag+1]){
-      bestVal=nsdf[lag];bestLag=lag;
-      break;
-    }
+    if(inValley&&nsdf[lag]>0.5&&nsdf[lag]>nsdf[lag-1]&&nsdf[lag]>=nsdf[lag+1]){bestVal=nsdf[lag];bestLag=lag;break;}
   }
   if(bestLag<1||bestVal<0.5)return -1;
   const y1=nsdf[bestLag-1],y2=nsdf[bestLag],y3=nsdf[bestLag+1];
@@ -105,83 +333,311 @@ function detectPitch(buf,sr){
   return sr/(dn>1e-10?bestLag+(y3-y1)/dn:bestLag);
 }
 
-// Three.js
-const canvas3d=document.getElementById('threeCanvas');
-const renderer=new THREE.WebGLRenderer({canvas:canvas3d,antialias:true,alpha:false});
+/* ---------------- DOM ---------------- */
+const $=id=>document.getElementById(id);
+const freqVal=$('freqVal'),dbVal=$('dbVal'),noteVal=$('noteVal'),centsVal=$('centsVal');
+const freqBig=$('freqBig'),gauge=$('gauge'),gaugeArc=$('gaugeArc'),needleGroup=$('needleGroup');
+const gaugeCenter=$('gaugeCenter'),intuneTag=$('intuneTag');
+const statusDot=$('statusDot'),statusText=$('statusText'),hudBr=$('hudBr'),hudBl=$('hudBl');
+const listenBtn=$('listenBtn'),listenLabel=$('listenLabel');
+const intro=$('intro'),startBtn=$('startBtn'),introNote=$('introNote');
+
+/* ---------------- Gauge geometry ---------------- */
+const CX=100,CY=118,MAXDEG=64;          // ±64° sweep for ±50 cents
+const R_ARC=72,R_TICK=78,R_TICK2=84,R_NEEDLE=72;
+const pol=(deg,r)=>[CX+r*Math.sin(deg*Math.PI/180),CY-r*Math.cos(deg*Math.PI/180)];
+function arcPath(d1,d2,r){const[x1,y1]=pol(d1,r),[x2,y2]=pol(d2,r);const large=Math.abs(d2-d1)>180?1:0;const sweep=d2>d1?1:0;return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} ${sweep} ${x2.toFixed(2)} ${y2.toFixed(2)}`;}
+$('gaugeBg').setAttribute('d',arcPath(-MAXDEG,MAXDEG,R_ARC));
+(function buildTicks(){
+  const g=$('gaugeTicks');let s='';
+  for(let c=-50;c<=50;c+=10){const deg=c/50*MAXDEG;const major=(c%50===0);const[x1,y1]=pol(deg,major?R_TICK-2:R_TICK);const[x2,y2]=pol(deg,R_TICK2);s+=`<line class="gauge-tick${major?' major':''}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;}
+  g.innerHTML=s;
+})();
+
+/* ---------------- Three.js scene ---------------- */
+const canvas=$('bgCanvas');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-renderer.setClearColor(0x060810,1);
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
 const scene=new THREE.Scene();
-scene.fog=new THREE.FogExp2(0x060810,0.035);
-const camera=new THREE.PerspectiveCamera(58,2,0.1,200);
-camera.position.set(0,14,30);camera.lookAt(0,2,0);
+let clearColor=new THREE.Color(0x04060b);
+scene.fog=new THREE.FogExp2(0x04060b,0.022);
+renderer.setClearColor(clearColor,1);
 
-scene.add(new THREE.AmbientLight(0x0a1020,2));
-const dirLight=new THREE.DirectionalLight(0x4ecb8d,1.5);dirLight.position.set(8,15,8);scene.add(dirLight);
-const pointLight=new THREE.PointLight(0x4ecb8d,4,50);pointLight.position.set(0,8,0);scene.add(pointLight);
-const pointLight2=new THREE.PointLight(0xc4a882,3,40);pointLight2.position.set(-12,4,-8);scene.add(pointLight2);
+const camera=new THREE.PerspectiveCamera(56,window.innerWidth/window.innerHeight,0.1,400);
+const camBase=new THREE.Vector3(0,7,30);
+camera.position.copy(camBase);camera.lookAt(0,3,0);
 
-// Outer bars
-const BAR_COUNT=80;const bars=[];const barGroup=new THREE.Group();scene.add(barGroup);
-for(let i=0;i<BAR_COUNT;i++){const t=i/BAR_COUNT;const hue=150+t*100;const mat=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},65%,52%)`),emissive:new THREE.Color(`hsl(${hue},65%,18%)`),emissiveIntensity:0.5,roughness:0.25,metalness:0.7});const geo=new THREE.BoxGeometry(0.45,1,0.45);const mesh=new THREE.Mesh(geo,mat);const angle=(i/BAR_COUNT)*Math.PI*2;const radius=10;mesh.position.x=Math.cos(angle)*radius;mesh.position.z=Math.sin(angle)*radius;mesh.position.y=0.5;mesh.rotation.y=-angle;barGroup.add(mesh);bars.push(mesh);}
+scene.add(new THREE.AmbientLight(0x223044,1.4));
+const keyLight=new THREE.PointLight(0xf2c17d,3,80);keyLight.position.set(0,10,2);scene.add(keyLight);
+const coolLight=new THREE.PointLight(0x5fb4d6,2.2,70);coolLight.position.set(-14,5,-10);scene.add(coolLight);
+const rimLight=new THREE.DirectionalLight(0xffd79c,0.8);rimLight.position.set(6,12,8);scene.add(rimLight);
 
-// Inner bars
-const BAR_COUNT2=48;const bars2=[];
-for(let i=0;i<BAR_COUNT2;i++){const t=i/BAR_COUNT2;const hue=200+t*60;const mat=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},55%,60%)`),emissive:new THREE.Color(`hsl(${hue},55%,20%)`),emissiveIntensity:0.3,roughness:0.3,metalness:0.6,transparent:true,opacity:0.85});const geo=new THREE.BoxGeometry(0.3,1,0.3);const mesh=new THREE.Mesh(geo,mat);const angle=(i/BAR_COUNT2)*Math.PI*2;const radius=6;mesh.position.x=Math.cos(angle)*radius;mesh.position.z=Math.sin(angle)*radius;mesh.position.y=0.5;mesh.rotation.y=-angle;barGroup.add(mesh);bars2.push(mesh);}
+const WARM=new THREE.Color(0xf2c17d),COOL=new THREE.Color(0x5fb4d6);
+const root=new THREE.Group();scene.add(root);
 
-// Waveform ring
-const WAVE_PTS=128;const wavePos=new Float32Array(WAVE_PTS*3);const waveGeo=new THREE.BufferGeometry();waveGeo.setAttribute('position',new THREE.BufferAttribute(wavePos,3));const waveMat=new THREE.LineBasicMaterial({color:0x6de8b0,transparent:true,opacity:0.8});const waveLine=new THREE.LineLoop(waveGeo,waveMat);scene.add(waveLine);
+/* radial bars (two rings) */
+function makeRing(count,radius,size,satMix){
+  const arr=[];const grp=new THREE.Group();root.add(grp);
+  for(let i=0;i<count;i++){
+    const t=i/(count-1);
+    const col=WARM.clone().lerp(COOL,t);
+    const mat=new THREE.MeshStandardMaterial({color:col,emissive:col.clone().multiplyScalar(satMix),emissiveIntensity:0.6,roughness:0.3,metalness:0.55});
+    const mesh=new THREE.Mesh(new THREE.BoxGeometry(size,1,size),mat);
+    const a=(i/count)*Math.PI*2;
+    mesh.position.set(Math.cos(a)*radius,0.5,Math.sin(a)*radius);
+    mesh.rotation.y=-a;
+    grp.add(mesh);arr.push(mesh);
+  }
+  return {arr,grp};
+}
+const ringA=makeRing(84,10.5,0.42,0.5);
+const ringB=makeRing(52,6.8,0.30,0.4);
 
-// Center sphere
-const sphereGeo=new THREE.SphereGeometry(1.6,32,32);const sphereMat=new THREE.MeshStandardMaterial({color:0x0d1f16,emissive:0x1a4d30,emissiveIntensity:0.6,roughness:0.1,metalness:0.9});const sphere=new THREE.Mesh(sphereGeo,sphereMat);sphere.position.y=1;scene.add(sphere);
-const wfMat=new THREE.MeshBasicMaterial({color:0x2a6b44,wireframe:true,transparent:true,opacity:0.25});const wfMesh=new THREE.Mesh(sphereGeo,wfMat);wfMesh.position.y=1;scene.add(wfMesh);
+/* waveform ring */
+const WAVE=140;const wavePos=new Float32Array(WAVE*3);
+const waveGeo=new THREE.BufferGeometry();waveGeo.setAttribute('position',new THREE.BufferAttribute(wavePos,3));
+const waveLine=new THREE.LineLoop(waveGeo,new THREE.LineBasicMaterial({color:0x9be8c6,transparent:true,opacity:0.85}));
+scene.add(waveLine);
 
-scene.add(new THREE.GridHelper(60,35,0x111a25,0x0b1018));
+/* central core */
+const coreGeo=new THREE.IcosahedronGeometry(1.7,2);
+const core=new THREE.Mesh(coreGeo,new THREE.MeshStandardMaterial({color:0x0e2018,emissive:0x1f6b46,emissiveIntensity:0.7,roughness:0.12,metalness:0.85}));
+core.position.y=1;scene.add(core);
+const coreWire=new THREE.Mesh(coreGeo,new THREE.MeshBasicMaterial({color:0x6de8b0,wireframe:true,transparent:true,opacity:0.18}));
+coreWire.position.y=1;scene.add(coreWire);
 
-function resizeRenderer(){const w=canvas3d.clientWidth,h=canvas3d.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
-resizeRenderer();window.addEventListener('resize',resizeRenderer);
+/* starfield */
+const STARS=1400;const starPos=new Float32Array(STARS*3);
+for(let i=0;i<STARS;i++){const r=70+Math.random()*120,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);starPos[i*3]=r*Math.sin(ph)*Math.cos(th);starPos[i*3+1]=r*Math.cos(ph)*0.6+10;starPos[i*3+2]=r*Math.sin(ph)*Math.sin(th);}
+const starGeo=new THREE.BufferGeometry();starGeo.setAttribute('position',new THREE.BufferAttribute(starPos,3));
+const stars=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0x9fb4d6,size:0.5,transparent:true,opacity:0.55,sizeAttenuation:true}));
+scene.add(stars);
 
-// Spectrum 2D
-const specCanvas=document.getElementById('spectrumCanvas');const specCtx=specCanvas.getContext('2d');
-function resizeSpec(){const dpr=window.devicePixelRatio||1;const r=specCanvas.getBoundingClientRect();specCanvas.width=r.width*dpr;specCanvas.height=r.height*dpr;specCtx.scale(dpr,dpr);}
-resizeSpec();window.addEventListener('resize',resizeSpec);
-function drawSpectrum(fd,sr){const W=specCanvas.getBoundingClientRect().width,H=specCanvas.getBoundingClientRect().height;specCtx.clearRect(0,0,W,H);const n=80;const bw=W/n-0.5;const lMin=Math.log10(40),lMax=Math.log10(18000);for(let i=0;i<n;i++){const t=i/(n-1);const freq=Math.pow(10,lMin+(lMax-lMin)*t);const idx=Math.min(Math.round(freq/(sr||44100)*analyser.fftSize),fd.length-1);const v=fd[idx]/255;const bh=v*H;const hue=150+(i/n)*100;specCtx.fillStyle=`hsla(${hue},60%,55%,${0.2+v*0.8})`;specCtx.fillRect(i*(bw+0.5),H-bh,bw,bh);}}
+/* floor grid */
+let grid=new THREE.GridHelper(120,48,0x16202e,0x0c121b);grid.position.y=-0.02;scene.add(grid);
 
-let audioCtx,analyser,source,stream,animId,idleAnimId,camAngle=0;
-const freqVal=document.getElementById('freqVal'),dbVal=document.getElementById('dbVal'),noteVal=document.getElementById('noteVal');
-const statusDot=document.getElementById('statusDot'),statusText=document.getElementById('statusText');
-const startBtn=document.getElementById('startBtn'),stopBtn=document.getElementById('stopBtn');
+/* composer + bloom */
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+const bloom=new UnrealBloomPass(new THREE.Vector2(window.innerWidth,window.innerHeight),0.85,0.6,0.0);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
 
-function idleLoop(){idleAnimId=requestAnimationFrame(idleLoop);const t=performance.now()*0.001;barGroup.rotation.y=t*0.07;bars.forEach((b,i)=>{const v=(Math.sin(t*1.2+i*0.15)*0.5+0.5)*0.6+0.1;b.scale.y=v;b.position.y=v*0.5;b.material.emissiveIntensity=0.15+v*0.3;});bars2.forEach((b,i)=>{const v=(Math.sin(t*1.8+i*0.2)*0.5+0.5)*0.4+0.05;b.scale.y=v;b.position.y=v*0.5;});sphere.scale.setScalar(1+Math.sin(t*2)*0.05);wfMesh.scale.setScalar(1+Math.sin(t*2)*0.05);camAngle=t*0.04;camera.position.x=Math.sin(camAngle)*5;camera.position.z=30+Math.cos(camAngle*0.6)*3;camera.lookAt(0,2,0);renderer.render(scene,camera);}
-idleLoop();
+function resize(){
+  const w=window.innerWidth,h=window.innerHeight;
+  renderer.setSize(w,h,false);composer.setSize(w,h);
+  camera.aspect=w/h;camera.updateProjectionMatrix();
+  resizeSpec();
+}
+window.addEventListener('resize',resize);
 
-function startLoop(){cancelAnimationFrame(idleAnimId);const bufLen=analyser.fftSize;const timeData=new Uint8Array(bufLen);const freqData=new Uint8Array(analyser.frequencyBinCount);const floatData=new Float32Array(bufLen);
-function tick(){animId=requestAnimationFrame(tick);analyser.getByteTimeDomainData(timeData);analyser.getByteFrequencyData(freqData);analyser.getFloatTimeDomainData(floatData);const t=performance.now()*0.001;
-const nyquist=analyser.frequencyBinCount;const logMin=Math.log10(40),logMax=Math.log10(18000);for(let i=0;i<BAR_COUNT;i++){const t=i/(BAR_COUNT-1);const freq=Math.pow(10,logMin+(logMax-logMin)*t);const idx=Math.min(Math.round(freq/audioCtx.sampleRate*analyser.fftSize),nyquist-1);const v=freqData[idx]/255;const th=Math.max(0.04,v*14);bars[i].scale.y+=(th-bars[i].scale.y)*0.22;bars[i].position.y=bars[i].scale.y*0.5;bars[i].material.emissiveIntensity=0.2+v*1.5;}
-for(let i=0;i<BAR_COUNT2;i++){const t=i/(BAR_COUNT2-1);const freq=Math.pow(10,logMin+(logMax-logMin)*t);const idx=Math.min(Math.round(freq/audioCtx.sampleRate*analyser.fftSize),nyquist-1);const v=freqData[idx]/255;const th=Math.max(0.04,v*8);bars2[i].scale.y+=(th-bars2[i].scale.y)*0.28;bars2[i].position.y=bars2[i].scale.y*0.5;bars2[i].material.emissiveIntensity=0.1+v*1.2;}
-barGroup.rotation.y=t*0.05;
-const wpos=waveGeo.attributes.position;for(let i=0;i<WAVE_PTS;i++){const angle=(i/WAVE_PTS)*Math.PI*2;const v=(timeData[Math.floor(i*timeData.length/WAVE_PTS)]/128.0-1.0);const r=3.5+v*3;wpos.setX(i,Math.cos(angle)*r);wpos.setY(i,v*1.8+1.5);wpos.setZ(i,Math.sin(angle)*r);}wpos.needsUpdate=true;
-const rms=Math.sqrt(floatData.reduce((s,v)=>s+v*v,0)/floatData.length);const sc=1+rms*6;sphere.scale.setScalar(sc);wfMesh.scale.setScalar(sc);sphereMat.emissiveIntensity=0.4+rms*8;pointLight.intensity=3+rms*25;
-camAngle+=0.0025;camera.position.x=Math.sin(camAngle)*7;camera.position.z=30+Math.cos(camAngle*0.5)*5;camera.lookAt(0,2,0);
-const pitch=detectPitch(floatData,audioCtx.sampleRate);if(pitch>20&&pitch<4200){freqVal.innerHTML=`${pitch.toFixed(1)}<span class="metric-unit">Hz</span>`;noteVal.textContent=freqToNote(pitch);freqVal.classList.add('active');}else{freqVal.innerHTML=`—<span class="metric-unit">Hz</span>`;noteVal.textContent='—';freqVal.classList.remove('active');}
-if(rms>0.0001){dbVal.innerHTML=`${Math.round(20*Math.log10(rms))}<span class="metric-unit">dB</span>`;dbVal.classList.add('active');}else{dbVal.innerHTML=`—<span class="metric-unit">dB</span>`;dbVal.classList.remove('active');}
-drawSpectrum(freqData,audioCtx.sampleRate);renderer.render(scene,camera);}tick();}
+/* parallax */
+let pmx=0,pmy=0,ptx=0,pty=0;
+if(!reduceMotion){window.addEventListener('pointermove',e=>{ptx=(e.clientX/window.innerWidth-0.5);pty=(e.clientY/window.innerHeight-0.5);});}
 
-async function start(){try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});audioCtx=new(window.AudioContext||window.webkitAudioContext)();analyser=audioCtx.createAnalyser();analyser.fftSize=4096;analyser.smoothingTimeConstant=0.82;source=audioCtx.createMediaStreamSource(stream);source.connect(analyser);startBtn.disabled=true;stopBtn.disabled=false;statusDot.classList.add('active');statusText.textContent='Listening…';startLoop();}catch(e){statusText.textContent='Microphone access denied';console.error(e);}}
-function stop(){cancelAnimationFrame(animId);if(source)source.disconnect();if(audioCtx)audioCtx.close();if(stream)stream.getTracks().forEach(t=>t.stop());startBtn.disabled=false;stopBtn.disabled=true;statusDot.classList.remove('active');statusText.textContent='Stopped';freqVal.innerHTML=`—<span class="metric-unit">Hz</span>`;dbVal.innerHTML=`—<span class="metric-unit">dB</span>`;noteVal.textContent='—';[freqVal,dbVal].forEach(el=>el.classList.remove('active'));idleLoop();}
-// Theme toggle
-let isLight=false;
-const themeBtn=document.getElementById('themeBtn');
-themeBtn.addEventListener('click',()=>{
-  isLight=!isLight;
-  document.body.classList.toggle('light',isLight);
-  themeBtn.textContent=isLight?'Night Mode':'Light Mode';
-  const bgColor=isLight?0xe8ecf2:0x060810;
-  renderer.setClearColor(bgColor,1);
-  scene.fog.color.setHex(isLight?0xe8ecf2:0x060810);
-  scene.children.forEach(c=>{if(c.isGridHelper){scene.remove(c);}});
-  scene.add(new THREE.GridHelper(60,35,isLight?0xc8d0dc:0x111a25,isLight?0xd4dbe6:0x0b1018));
+/* ---------------- Spectrum 2D ---------------- */
+const spec=$('spectrumCanvas');const sctx=spec.getContext('2d');
+function resizeSpec(){const dpr=window.devicePixelRatio||1;const r=spec.getBoundingClientRect();if(!r.width)return;spec.width=r.width*dpr;spec.height=r.height*dpr;sctx.setTransform(dpr,0,0,dpr,0,0);}
+function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function drawSpectrum(fd,sr){
+  const r=spec.getBoundingClientRect();const W=r.width,H=r.height;if(!W)return;
+  sctx.clearRect(0,0,W,H);
+  const n=72,gap=2,bw=(W-(n-1)*gap)/n;
+  const lMin=Math.log10(40),lMax=Math.log10(18000);
+  for(let i=0;i<n;i++){
+    const t=i/(n-1);const freq=Math.pow(10,lMin+(lMax-lMin)*t);
+    const idx=Math.min(Math.round(freq/(sr||44100)*analyser.fftSize),fd.length-1);
+    const v=fd[idx]/255;const bh=Math.max(2,v*H);
+    const x=i*(bw+gap);
+    const grad=sctx.createLinearGradient(0,H,0,H-bh);
+    grad.addColorStop(0,`rgba(95,180,214,${0.25+v*0.4})`);
+    grad.addColorStop(1,`rgba(242,193,125,${0.5+v*0.5})`);
+    sctx.fillStyle=grad;
+    sctx.fillRect(x,H-bh,bw,bh);
+  }
+}
+
+/* ---------------- Audio state ---------------- */
+let audioCtx,analyser,source,stream,running=false;
+let timeData,freqData,floatData;
+const tgt={freq:0,db:-120,cents:0,note:'—',has:false};
+const disp={freq:0,db:-120,cents:0,needleDeg:0,coreScale:1,bloom:0.85};
+let lastPitch=0;
+
+async function start(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended')await audioCtx.resume();
+    analyser=audioCtx.createAnalyser();analyser.fftSize=4096;analyser.smoothingTimeConstant=0.8;
+    source=audioCtx.createMediaStreamSource(stream);source.connect(analyser);
+    timeData=new Uint8Array(analyser.fftSize);
+    freqData=new Uint8Array(analyser.frequencyBinCount);
+    floatData=new Float32Array(analyser.fftSize);
+    running=true;
+    statusDot.classList.add('live');statusText.textContent='Listening';
+    hudBr.innerHTML='<span class="accent">STATUS</span> Listening';
+    hudBl.innerHTML=`<span class="accent">SR</span> ${audioCtx.sampleRate} Hz · <span class="accent">FFT</span> 4096`;
+    listenBtn.classList.add('running');listenLabel.textContent='Stop';
+    revealApp();
+    intro.classList.add('hidden');
+  }catch(e){
+    introNote.classList.add('error');
+    introNote.textContent=e&&e.name==='NotAllowedError'?'Microphone access denied — enable it in your browser to continue.':'Could not access microphone.';
+    console.error(e);
+  }
+}
+function stop(){
+  running=false;
+  if(source)source.disconnect();
+  if(audioCtx)audioCtx.close();
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  tgt.has=false;
+  const sr=spec.getBoundingClientRect();sctx.clearRect(0,0,sr.width,sr.height);
+  statusDot.classList.remove('live');statusText.textContent='Stopped';
+  hudBr.innerHTML='<span class="accent">STATUS</span> Standby';
+  listenBtn.classList.remove('running');listenLabel.textContent='Listen';
+}
+function revealApp(){document.body.classList.add('revealed');}
+
+/* ---------------- Audio analysis (decoupled from render) ---------------- */
+function analyse(){
+  if(!running){tgt.has=false;tgt.db=-120;return;}
+  analyser.getByteFrequencyData(freqData);
+  analyser.getByteTimeDomainData(timeData);
+  analyser.getFloatTimeDomainData(floatData);
+  const rms=Math.sqrt(floatData.reduce((s,v)=>s+v*v,0)/floatData.length);
+  tgt.db=rms>1e-6?Math.max(-100,20*Math.log10(rms)):-120;
+  const pitch=detectPitch(floatData,audioCtx.sampleRate);
+  if(pitch>20&&pitch<4200){
+    tgt.freq=pitch;tgt.note=freqToNote(pitch);tgt.cents=Math.max(-50,Math.min(50,centsFromNearest(pitch)));tgt.has=true;lastPitch=performance.now();
+  }else if(performance.now()-lastPitch>350){tgt.has=false;}
+}
+
+/* ---------------- Render loop ---------------- */
+const lerp=(a,b,t)=>a+(b-a)*t;
+let last=performance.now();
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min(0.05,(now-last)/1000);last=now;
+  const t=now*0.001;
+  if(running)analyse();
+
+  /* bars */
+  const drive=(ring,maxH,speed,phase)=>{
+    const a=ring.arr,n=a.length;
+    for(let i=0;i<n;i++){
+      let target;
+      if(running&&tgt.has!==undefined&&freqData){
+        const tt=i/(n-1);const freq=Math.pow(10,Math.log10(40)+(Math.log10(18000)-Math.log10(40))*tt);
+        const idx=Math.min(Math.round(freq/audioCtx.sampleRate*analyser.fftSize),freqData.length-1);
+        target=Math.max(0.05,(freqData[idx]/255)*maxH);
+      }else{
+        target=(Math.sin(t*speed+i*phase)*0.5+0.5)*maxH*0.4+0.08; // idle breathing
+      }
+      const m=a[i];m.scale.y+=(target-m.scale.y)*0.2;m.position.y=m.scale.y*0.5;
+      m.material.emissiveIntensity=0.25+ (m.scale.y/maxH)*1.6;
+    }
+  };
+  drive(ringA,running?14:1.4,1.1,0.16);
+  drive(ringB,running?9:1.0,1.7,0.22);
+  root.rotation.y=t*(running?0.05:0.04);
+
+  /* waveform ring */
+  const wp=waveGeo.attributes.position;
+  for(let i=0;i<WAVE;i++){
+    const a=(i/WAVE)*Math.PI*2;
+    let v;
+    if(running&&timeData){v=timeData[Math.floor(i*timeData.length/WAVE)]/128-1;}
+    else{v=Math.sin(a*3+t*1.5)*0.18;}
+    const r=3.6+v*3;
+    wp.setX(i,Math.cos(a)*r);wp.setY(i,v*1.6+1.4);wp.setZ(i,Math.sin(a)*r);
+  }
+  wp.needsUpdate=true;
+
+  /* core + lights */
+  const rms=running?Math.max(0,(tgt.db+100)/100):0; // 0..1-ish
+  const targetCore=running?1+rms*1.4:1+Math.sin(t*1.6)*0.05;
+  disp.coreScale=lerp(disp.coreScale,targetCore,0.12);
+  core.scale.setScalar(disp.coreScale);coreWire.scale.setScalar(disp.coreScale);
+  core.rotation.y+=dt*0.3;core.rotation.x+=dt*0.12;coreWire.rotation.y-=dt*0.2;
+  core.material.emissiveIntensity=lerp(core.material.emissiveIntensity,0.5+rms*4,0.1);
+  keyLight.intensity=lerp(keyLight.intensity,3+rms*14,0.1);
+  stars.rotation.y+=dt*0.012;
+
+  /* camera dolly + parallax */
+  pmx=lerp(pmx,ptx,0.04);pmy=lerp(pmy,pty,0.04);
+  const orbit=t*(running?0.05:0.035);
+  camera.position.x=Math.sin(orbit)*4 + pmx*6;
+  camera.position.y=camBase.y + pmy*-3 + (running?rms*1.5:0);
+  camera.position.z=camBase.z + Math.cos(orbit*0.6)*3;
+  camera.lookAt(0,3,0);
+
+  /* bloom reacts */
+  disp.bloom=lerp(disp.bloom,running?0.7+rms*0.9:0.85,0.08);
+  bloom.strength=disp.bloom;
+
+  if(running&&freqData)drawSpectrum(freqData,audioCtx.sampleRate);
+
+  composer.render();
+  updateReadouts(dt);
+}
+
+/* ---------------- Readout / gauge UI ---------------- */
+function fmt(n,d){return n.toFixed(d);}
+function updateReadouts(){
+  const show=running&&tgt.has;
+  // smooth values
+  disp.db=lerp(disp.db,running?tgt.db:-120,0.15);
+  if(show){
+    disp.freq=lerp(disp.freq,tgt.freq,0.22);
+    disp.cents=lerp(disp.cents,tgt.cents,0.18);
+    freqVal.textContent=fmt(disp.freq,1);
+    noteVal.textContent=tgt.note;
+    const cv=Math.round(disp.cents);
+    centsVal.textContent=`${cv>0?'+':''}${cv} cents`;
+    freqBig.classList.add('live');
+  }else{
+    freqVal.textContent='—';noteVal.textContent='—';centsVal.textContent='— cents';
+    freqBig.classList.remove('live');
+    disp.cents=lerp(disp.cents,0,0.12);
+  }
+  dbVal.textContent= running&&disp.db>-99 ? Math.round(disp.db) : '—';
+
+  // gauge needle
+  disp.needleDeg=disp.cents/50*MAXDEG;
+  needleGroup.setAttribute('transform',`rotate(${disp.needleDeg.toFixed(2)} ${CX} ${CY})`);
+  gaugeArc.setAttribute('d',arcPath(0,disp.needleDeg||0.001,R_ARC));
+  const inTune=show&&Math.abs(tgt.cents)<5;
+  gauge.classList.toggle('intune',inTune);
+  gaugeCenter.classList.toggle('intune',inTune);
+  intuneTag.classList.toggle('on',inTune);
+}
+requestAnimationFrame(frame);
+
+/* ---------------- Theme ---------------- */
+let light=false;
+$('themeBtn').addEventListener('click',()=>{
+  light=!light;
+  document.body.classList.toggle('light',light);
+  $('themeBtn').textContent=light?'Night Mode':'Day Mode';
+  const bg=light?0xe7e0d2:0x04060b;
+  clearColor.setHex(bg);renderer.setClearColor(clearColor,1);scene.fog.color.setHex(bg);
+  scene.remove(grid);
+  grid=new THREE.GridHelper(120,48,light?0xbcae93:0x16202e,light?0xcfc4ad:0x0c121b);
+  grid.position.y=-0.02;scene.add(grid);
+  stars.material.opacity=light?0.25:0.55;
+  renderer.toneMappingExposure=light?1.0:1.15;
 });
-startBtn.addEventListener('click',start);stopBtn.addEventListener('click',stop);
+
+/* ---------------- Controls ---------------- */
+startBtn.addEventListener('click',start);
+listenBtn.addEventListener('click',()=>{running?stop():start();});
+
+/* kick a first resize once layout settles */
+resize();requestAnimationFrame(resize);
 </script>
 </body>
 </html>
