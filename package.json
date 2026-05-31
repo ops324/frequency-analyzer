@@ -1,0 +1,11 @@
+{
+  "name": "frequency-analyzer",
+  "version": "1.0.0",
+  "description": "Real-time frequency analyzer & tuner with a cinematic Three.js visualizer (single-page, build-free).",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "MIT"
+}

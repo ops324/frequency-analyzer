@@ -4,7 +4,7 @@
     {
       "name": "freq-analyzer",
       "runtimeExecutable": "node",
-      "runtimeArgs": [".claude/static-server.js"],
+      "runtimeArgs": [".claude/static-server.cjs"],
       "port": 8124
     }
   ]
