@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--
+  Source for the social share (OGP) image og.png — rendered to a 1200x630 PNG.
+  Regenerate after editing this file with:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --hide-scrollbars --force-device-scale-factor=1 \
+      --window-size=1200,630 --default-background-color=00000000 \
+      --virtual-time-budget=3000 \
+      --screenshot="og.png" "file://$PWD/assets/og-source.html"
+  Mirrors the dark "Observatory" theme of index.html (colors + fonts).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..600&family=Geist+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    position: relative;
+    background: radial-gradient(120% 140% at 78% 18%, #0a1422 0%, #060a12 42%, #04060b 100%);
+    font-family: 'Geist Mono', monospace;
+    color: #f1f3f8;
+  }
+  .glow {
+    position: absolute; top: -110px; right: 70px;
+    width: 560px; height: 560px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(242,193,125,0.22) 0%, rgba(242,193,125,0.05) 45%, transparent 70%);
+    filter: blur(8px);
+  }
+  .grid {
+    position: absolute; inset: 0; opacity: 0.5;
+    background-image: linear-gradient(rgba(124,196,226,0.05) 1px, transparent 1px);
+    background-size: 100% 46px;
+  }
+  .pad {
+    position: absolute; inset: 0; padding: 52px 96px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .row { display: flex; justify-content: space-between; align-items: flex-start; }
+  .mono { font-family: 'Geist Mono', monospace; }
+  .serif { font-family: 'EB Garamond', serif; }
+  .brand { color: #7cc4e2; letter-spacing: 0.32em; font-size: 22px; font-weight: 500; text-transform: uppercase; }
+  .tag { color: #7b8499; letter-spacing: 0.26em; font-size: 16px; text-transform: uppercase; }
+  .reading { display: flex; align-items: baseline; gap: 48px; }
+  .note { color: #5fe3a4; font-size: 150px; line-height: 0.9; font-weight: 500; text-shadow: 0 0 28px rgba(95,227,164,0.35); }
+  .freq { color: #f2c17d; font-size: 72px; font-weight: 400; line-height: 1; text-shadow: 0 0 22px rgba(242,193,125,0.3); }
+  .freq .unit { color: #a3abbd; font-size: 36px; }
+  .cents { color: #5fe3a4; font-size: 26px; letter-spacing: 0.12em; margin-top: 14px; }
+  .bars { display: flex; align-items: flex-end; gap: 8px; height: 112px; margin-bottom: 30px; }
+  .bars span { flex: 1; border-radius: 3px 3px 0 0; }
+  .footer { display: flex; justify-content: space-between; align-items: flex-end; }
+  .obs { color: #f1f3f8; font-size: 52px; font-style: italic; line-height: 1; }
+  .sub { color: #7b8499; font-size: 18px; letter-spacing: 0.1em; }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="grid"></div>
+  <div class="pad">
+    <div class="row">
+      <div class="mono brand">Frequency Analyzer</div>
+      <div class="mono tag">&#9638; live spectrum</div>
+    </div>
+
+    <div class="reading">
+      <div class="serif note">A4</div>
+      <div>
+        <div class="mono freq">440.0 <span class="unit">Hz</span></div>
+        <div class="mono cents">+0 cents &middot; in tune</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="bars">
+        <span style="background:linear-gradient(180deg,#7cc4e2,rgba(124,196,226,0.15));height:22%"></span>
+        <span style="background:linear-gradient(180deg,#7cc4e2,rgba(124,196,226,0.15));height:40%"></span>
+        <span style="background:linear-gradient(180deg,#9bd2e8,rgba(124,196,226,0.15));height:62%"></span>
+        <span style="background:linear-gradient(180deg,#f2c17d,rgba(242,193,125,0.2));height:100%"></span>
+        <span style="background:linear-gradient(180deg,#9bd2e8,rgba(124,196,226,0.15));height:70%"></span>
+        <span style="background:linear-gradient(180deg,#7cc4e2,rgba(124,196,226,0.15));height:48%"></span>
+        <span style="background:linear-gradient(180deg,#7cc4e2,rgba(124,196,226,0.15));height:34%"></span>
+        <span style="background:linear-gradient(180deg,#6fb8d8,rgba(124,196,226,0.15));height:55%"></span>
+        <span style="background:linear-gradient(180deg,#7cc4e2,rgba(124,196,226,0.15));height:30%"></span>
+        <span style="background:linear-gradient(180deg,#7cc4e2,rgba(124,196,226,0.15));height:42%"></span>
+        <span style="background:linear-gradient(180deg,#7cc4e2,rgba(124,196,226,0.15));height:24%"></span>
+        <span style="background:linear-gradient(180deg,#7cc4e2,rgba(124,196,226,0.15));height:38%"></span>
+        <span style="background:linear-gradient(180deg,#7cc4e2,rgba(124,196,226,0.15));height:52%"></span>
+        <span style="background:linear-gradient(180deg,#7cc4e2,rgba(124,196,226,0.15));height:28%"></span>
+        <span style="background:linear-gradient(180deg,#7cc4e2,rgba(124,196,226,0.15));height:44%"></span>
+        <span style="background:linear-gradient(180deg,#7cc4e2,rgba(124,196,226,0.15));height:33%"></span>
+      </div>
+      <div class="footer">
+        <div class="serif obs">Observatory</div>
+        <div class="mono sub">real-time pitch &middot; note &middot; tuning</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
