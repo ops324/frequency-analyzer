@@ -394,6 +394,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { freqToNote, centsFromNearest, detectPitch } from './src/pitch.js';
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -447,26 +448,33 @@ const rimLight=new THREE.DirectionalLight(0xffd79c,0.8);rimLight.position.set(6,
 
 const WARM=new THREE.Color(0xf2c17d),COOL=new THREE.Color(0x5fb4d6);
 const root=new THREE.Group();scene.add(root);
-const allBars=[];
 
-/* radial bars (two rings) */
-function makeRing(count,radius,size,satMix){
-  const arr=[];const grp=new THREE.Group();root.add(grp);
+/* radial bars — two instanced rings (136 draw calls -> 2), per-bar colour doubles as emissive tint */
+const barMat=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffffff,emissiveIntensity:1.0,roughness:0.3,metalness:0.55});
+barMat.onBeforeCompile=s=>{
+  s.fragmentShader=s.fragmentShader.replace('#include <emissivemap_fragment>',
+    '#include <emissivemap_fragment>\n\ttotalEmissiveRadiance *= vColor;');
+};
+const barTheme={colorMul:1.0};
+function makeRing(count,radius,size){
+  const geo=new THREE.BoxGeometry(size,1,size);geo.translate(0,0.5,0); // pivot at base: scale.y grows upward
+  const mesh=new THREE.InstancedMesh(geo,barMat,count);
+  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  const base=[],px=new Float32Array(count),pz=new Float32Array(count);
+  const level=new Float32Array(count).fill(0.08);
   for(let i=0;i<count;i++){
-    const t=i/(count-1);
-    const col=WARM.clone().lerp(COOL,t);
-    const mat=new THREE.MeshStandardMaterial({color:col.clone(),emissive:col.clone(),emissiveIntensity:0.6,roughness:0.3,metalness:0.55});
-    const mesh=new THREE.Mesh(new THREE.BoxGeometry(size,1,size),mat);
-    mesh.userData.base=col.clone();
+    base.push(WARM.clone().lerp(COOL,i/(count-1)));
     const a=(i/count)*Math.PI*2;
-    mesh.position.set(Math.cos(a)*radius,0.5,Math.sin(a)*radius);
-    mesh.rotation.y=-a;
-    grp.add(mesh);arr.push(mesh);allBars.push(mesh);
+    px[i]=Math.cos(a)*radius;pz[i]=Math.sin(a)*radius;
+    mesh.setColorAt(i,base[i]);
   }
-  return {arr,grp};
+  mesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
+  root.add(mesh);
+  return {mesh,base,px,pz,level,count};
 }
-const ringA=makeRing(84,10.5,0.42,0.5);
-const ringB=makeRing(52,6.8,0.30,0.4);
+const ringA=makeRing(84,10.5,0.42);
+const ringB=makeRing(52,6.8,0.30);
+const _m4=new THREE.Matrix4(),_col=new THREE.Color();
 
 /* waveform ring */
 const WAVE=140;const wavePos=new Float32Array(WAVE*3);
@@ -481,15 +489,66 @@ core.position.y=1;scene.add(core);
 const coreWire=new THREE.Mesh(coreGeo,new THREE.MeshBasicMaterial({color:0x6de8b0,wireframe:true,transparent:true,opacity:0.18}));
 coreWire.position.y=1;scene.add(coreWire);
 
-/* starfield */
-const STARS=1400;const starPos=new Float32Array(STARS*3);
-for(let i=0;i<STARS;i++){const r=70+Math.random()*120,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);starPos[i*3]=r*Math.sin(ph)*Math.cos(th);starPos[i*3+1]=r*Math.cos(ph)*0.6+10;starPos[i*3+2]=r*Math.sin(ph)*Math.sin(th);}
-const starGeo=new THREE.BufferGeometry();starGeo.setAttribute('position',new THREE.BufferAttribute(starPos,3));
-const stars=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0x9fb4d6,size:0.5,transparent:true,opacity:0.55,sizeAttenuation:true}));
-scene.add(stars);
+/* starfield — two depth layers; the near layer twinkles and parallaxes faster */
+function makeStars(count,rMin,rMax,size){
+  const pos=new Float32Array(count*3);
+  for(let i=0;i<count;i++){
+    const r=rMin+Math.random()*(rMax-rMin),th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);
+    pos[i*3]=r*Math.sin(ph)*Math.cos(th);pos[i*3+1]=r*Math.cos(ph)*0.6+10;pos[i*3+2]=r*Math.sin(ph)*Math.sin(th);
+  }
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const pts=new THREE.Points(geo,new THREE.PointsMaterial({color:0x9fb4d6,size,transparent:true,opacity:0.5,sizeAttenuation:true}));
+  scene.add(pts);return pts;
+}
+const starsFar=makeStars(900,110,190,0.4);
+const starsNear=makeStars(500,70,110,0.75);
+let starNearOp=0.7;
 
-/* floor grid */
-let grid=new THREE.GridHelper(120,48,0x16202e,0x0c121b);grid.position.y=-0.02;scene.add(grid);
+/* polar floor — engraved observatory dial that dissolves into the fog */
+function makePolarTexture(){
+  const S=1024,c=document.createElement('canvas');c.width=c.height=S;
+  const g=c.getContext('2d');const cx=S/2;
+  g.strokeStyle='#ffffff';
+  for(let r=1;r<=10;r++){
+    g.globalAlpha=r%5===0?0.5:0.28;g.lineWidth=r%5===0?2:1;
+    g.beginPath();g.arc(cx,cx,r/10*(S/2-8),0,Math.PI*2);g.stroke();
+  }
+  g.globalAlpha=0.22;g.lineWidth=1;
+  for(let i=0;i<24;i++){
+    const a=i/24*Math.PI*2;
+    g.beginPath();g.moveTo(cx+Math.cos(a)*40,cx+Math.sin(a)*40);
+    g.lineTo(cx+Math.cos(a)*(S/2-8),cx+Math.sin(a)*(S/2-8));g.stroke();
+  }
+  g.globalAlpha=1;g.globalCompositeOperation='destination-out';
+  const fade=g.createRadialGradient(cx,cx,S*0.18,cx,cx,S/2);
+  fade.addColorStop(0,'rgba(0,0,0,0)');fade.addColorStop(0.75,'rgba(0,0,0,0.45)');fade.addColorStop(1,'rgba(0,0,0,1)');
+  g.fillStyle=fade;g.fillRect(0,0,S,S);
+  const tex=new THREE.CanvasTexture(c);tex.anisotropy=4;return tex;
+}
+const floor=new THREE.Mesh(
+  new THREE.CircleGeometry(60,72),
+  new THREE.MeshBasicMaterial({map:makePolarTexture(),transparent:true,color:0x16202e,opacity:0.85,depthWrite:false}));
+floor.rotation.x=-Math.PI/2;floor.position.y=-0.02;scene.add(floor);
+
+/* onset embers — pooled particles rising from the core on attacks */
+const EMBERS=240;
+const emberPos=new Float32Array(EMBERS*3).fill(-999);
+const emberVel=new Float32Array(EMBERS*3);
+const emberLife=new Float32Array(EMBERS);
+const emberGeo=new THREE.BufferGeometry();
+emberGeo.setAttribute('position',new THREE.BufferAttribute(emberPos,3));
+const emberMat=new THREE.PointsMaterial({color:0xffd79c,size:0.16,transparent:true,opacity:0.8,depthWrite:false,blending:THREE.AdditiveBlending,sizeAttenuation:true});
+const embers=new THREE.Points(emberGeo,emberMat);embers.frustumCulled=false;scene.add(embers);
+let emberCursor=0,lastOnset=0;
+function spawnEmbers(n,energy){
+  for(let k=0;k<n;k++){
+    const i=emberCursor;emberCursor=(emberCursor+1)%EMBERS;
+    const a=Math.random()*Math.PI*2,sp=(0.6+Math.random()*1.8)*(0.4+energy);
+    emberPos[i*3]=Math.cos(a)*0.5;emberPos[i*3+1]=1+Math.random()*0.6;emberPos[i*3+2]=Math.sin(a)*0.5;
+    emberVel[i*3]=Math.cos(a)*sp;emberVel[i*3+1]=1.6+Math.random()*2.2;emberVel[i*3+2]=Math.sin(a)*sp;
+    emberLife[i]=0.9+Math.random()*0.5;
+  }
+}
 
 /* in-tune celebration ring (pooled, reused) */
 const pulse=new THREE.Mesh(
@@ -505,6 +564,11 @@ const bloom=new UnrealBloomPass(new THREE.Vector2(window.innerWidth,window.inner
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
+/* image-based environment — real specular life on the metal bars and core */
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
+pmrem.dispose();
+
 /* ---------------- Theme-aware rendering ---------------- */
 let themeLight=false,emissiveMul=1.0,lightMul=1.0,bloomBase=0.5,themeExposure=1.12;
 function applyTheme(light){
@@ -516,7 +580,7 @@ function applyTheme(light){
   renderer.toneMappingExposure=themeExposure;
   pulse.material.color.setHex(light?0x0f8a55:0x5fe3a4);
   bloom.threshold=light?0.92:0.55;   // light bg is bright, so only the very brightest glow
-  bloom.radius=light?0.3:0.45;
+  bloom.radius=light?0.3:0.4;
   bloomBase=light?0.10:0.5;
   lightMul=light?0.45:1.0;
   emissiveMul=light?0.28:1.0;
@@ -524,21 +588,25 @@ function applyTheme(light){
   rimLight.intensity=light?0.5:0.8;
   ambient.color.setHex(light?0xa99f88:0x223044);
   ambient.intensity=light?1.6:1.4;
-  allBars.forEach(m=>{
-    const b=m.userData.base;
-    if(light){m.material.color.copy(b).multiplyScalar(0.5);m.material.emissive.copy(b).multiplyScalar(0.55);m.material.metalness=0.25;m.material.roughness=0.55;}
-    else{m.material.color.copy(b);m.material.emissive.copy(b);m.material.metalness=0.55;m.material.roughness=0.3;}
-  });
+  barTheme.colorMul=light?0.55:1.0;
+  barMat.metalness=light?0.25:0.55;
+  barMat.roughness=light?0.55:0.3;
+  barMat.envMapIntensity=light?0.5:0.35;
+  barMat.emissiveIntensity=light?0.3:1.0;
   core.material.color.setHex(light?0x123026:0x0e2018);
+  core.material.envMapIntensity=light?0.5:0.4;
   coreWire.material.color.setHex(light?0x2c895f:0x6de8b0);
   coreWire.material.opacity=light?0.32:0.18;
   waveLine.material.color.setHex(light?0x167a4f:0x9be8c6);
   waveLine.material.opacity=light?0.7:0.85;
-  stars.material.color.setHex(light?0x6b6354:0x9fb4d6);
-  stars.material.opacity=light?0.18:0.55;
-  scene.remove(grid);
-  grid=new THREE.GridHelper(120,48,light?0xa89a78:0x16202e,light?0xc0b390:0x0c121b);
-  grid.position.y=-0.02;scene.add(grid);
+  starsFar.material.color.setHex(light?0x6b6354:0x9fb4d6);
+  starsFar.material.opacity=light?0.16:0.5;
+  starsNear.material.color.setHex(light?0x6b6354:0xb8ccec);
+  starNearOp=light?0.2:0.7;starsNear.material.opacity=starNearOp;
+  emberMat.color.setHex(light?0xa4630f:0xffd79c);
+  emberMat.opacity=light?0.45:0.8;
+  floor.material.color.setHex(light?0xa89a78:0x16202e);
+  floor.material.opacity=light?0.6:0.85;
 }
 
 function resize(){
@@ -583,7 +651,8 @@ function drawSpectrum(fd,sr){
 /* ---------------- Audio state ---------------- */
 let audioCtx,analyser,source,stream,running=false;
 let timeData,freqData,floatData;
-const tgt={freq:0,db:-120,cents:0,note:'—',has:false};
+const tgt={freq:0,db:-120,cents:0,note:'—',has:false,flux:0};
+let prevFreq=null,fluxAvg=0;
 const disp={freq:0,db:-120,cents:0,needleDeg:0,ghostDeg:0,coreScale:1,bloom:0.85};
 let lastPitch=0;
 
@@ -637,6 +706,13 @@ function analyse(){
   analyser.getByteFrequencyData(freqData);
   analyser.getByteTimeDomainData(timeData);
   analyser.getFloatTimeDomainData(floatData);
+  // spectral flux (positive change vs previous frame) -> onset signal for particles/bloom
+  if(!prevFreq||prevFreq.length!==freqData.length)prevFreq=new Uint8Array(freqData.length);
+  let flux=0;
+  for(let i=2;i<freqData.length;i+=2){const d=freqData[i]-prevFreq[i];if(d>0)flux+=d;}
+  prevFreq.set(freqData);
+  tgt.flux=flux/(freqData.length*127.5);
+  fluxAvg+=(tgt.flux-fluxAvg)*0.05;
   const rms=Math.sqrt(floatData.reduce((s,v)=>s+v*v,0)/floatData.length);
   tgt.db=rms>1e-6?Math.max(-100,20*Math.log10(rms)):-120;
   const pitch=detectPitch(floatData,audioCtx.sampleRate);
@@ -650,6 +726,7 @@ const lerp=(a,b,t)=>a+(b-a)*t;
 const ease=x=>1-Math.pow(1-x,3);
 const trans={t:1,dur:1.6,active:false}; // listening-start dolly-in
 let dip=0;                              // stop-time exposure dip
+let bloomKick=0;                        // onset-driven bloom accent
 let last=performance.now();
 function frame(now){
   requestAnimationFrame(frame);
@@ -657,25 +734,55 @@ function frame(now){
   const t=now*0.001;
   if(running)analyse();
 
-  /* bars */
+  /* bars — instanced, asymmetric envelope: snap up on attack, fall gracefully */
   const drive=(ring,maxH,speed,phase)=>{
-    const a=ring.arr,n=a.length;
+    const n=ring.count,mesh=ring.mesh,lv=ring.level;
     for(let i=0;i<n;i++){
       let target;
-      if(running&&tgt.has!==undefined&&freqData){
+      if(running&&freqData){
         const tt=i/(n-1);const freq=Math.pow(10,Math.log10(40)+(Math.log10(18000)-Math.log10(40))*tt);
         const idx=Math.min(Math.round(freq/audioCtx.sampleRate*analyser.fftSize),freqData.length-1);
         target=Math.max(0.05,(freqData[idx]/255)*maxH);
       }else{
         target=(Math.sin(t*speed+i*phase)*0.5+0.5)*maxH*0.4+0.08; // idle breathing
       }
-      const m=a[i];m.scale.y+=(target-m.scale.y)*0.2;m.position.y=m.scale.y*0.5;
-      m.material.emissiveIntensity=(0.25+(m.scale.y/maxH)*1.6)*emissiveMul;
+      lv[i]+=(target-lv[i])*(target>lv[i]?0.55:0.06);
+      const h=lv[i];
+      _m4.set(1,0,0,ring.px[i], 0,h,0,0, 0,0,1,ring.pz[i], 0,0,0,1);
+      mesh.setMatrixAt(i,_m4);
+      _col.copy(ring.base[i]).multiplyScalar((0.32+(h/maxH)*1.05)*barTheme.colorMul);
+      mesh.setColorAt(i,_col);
     }
+    mesh.instanceMatrix.needsUpdate=true;
+    mesh.instanceColor.needsUpdate=true;
   };
   drive(ringA,running?14:2.4,1.1,0.16);
   drive(ringB,running?9:1.6,1.7,0.22);
   root.rotation.y=t*(running?0.05:0.04);
+
+  /* onset -> embers + bloom kick */
+  if(running&&!reduceMotion&&tgt.flux>fluxAvg*2.5+0.004&&now-lastOnset>130){
+    lastOnset=now;
+    const energy=Math.min(1,(tgt.flux-fluxAvg)/(fluxAvg*4+0.01));
+    spawnEmbers(14+Math.round(energy*16),energy);
+    bloomKick=Math.min(0.3,bloomKick+0.12+energy*0.08);
+  }
+  bloomKick*=Math.exp(-dt*5);
+
+  /* embers physics */
+  {
+    let any=false;
+    for(let i=0;i<EMBERS;i++){
+      if(emberLife[i]<=0)continue;
+      any=true;emberLife[i]-=dt;
+      if(emberLife[i]<=0){emberPos[i*3+1]=-999;continue;}
+      emberVel[i*3+1]-=dt*1.8;
+      emberPos[i*3]+=emberVel[i*3]*dt;
+      emberPos[i*3+1]+=emberVel[i*3+1]*dt;
+      emberPos[i*3+2]+=emberVel[i*3+2]*dt;
+    }
+    if(any)emberGeo.attributes.position.needsUpdate=true;
+  }
 
   /* waveform ring */
   const wp=waveGeo.attributes.position;
@@ -697,7 +804,9 @@ function frame(now){
   core.rotation.y+=dt*0.3;core.rotation.x+=dt*0.12;coreWire.rotation.y-=dt*0.2;
   core.material.emissiveIntensity=lerp(core.material.emissiveIntensity,(0.5+rms*4)*emissiveMul,0.1);
   keyLight.intensity=lerp(keyLight.intensity,(3+rms*14)*lightMul,0.1);
-  stars.rotation.y+=dt*0.012;
+  starsFar.rotation.y+=dt*0.008;
+  starsNear.rotation.y+=dt*0.02;
+  if(!reduceMotion)starsNear.material.opacity=starNearOp*(0.82+Math.sin(t*1.7)*0.18);
 
   /* in-tune celebration ring */
   if(pulseT<1){
@@ -726,9 +835,9 @@ function frame(now){
     renderer.toneMappingExposure=themeExposure*(1-0.2*Math.sin((1-dip)*Math.PI));
   }
 
-  /* bloom reacts (kept low; threshold confines it to highlights); swells during start cinematic */
+  /* bloom reacts (kept low; threshold confines it to highlights); swells during start cinematic, kicks on onsets */
   disp.bloom=lerp(disp.bloom,bloomBase+(running?rms*0.5:0),0.08);
-  bloom.strength=disp.bloom+(trans.active?Math.sin(cin*Math.PI)*0.55:0);
+  bloom.strength=disp.bloom+bloomKick+(trans.active?Math.sin(cin*Math.PI)*0.55:0);
 
   if(running&&freqData)drawSpectrum(freqData,audioCtx.sampleRate);
 
