@@ -268,21 +268,35 @@
   .revealed .theme-btn{animation:rise .8s .3s ease forwards}
 
   /* ---- responsive ---- */
+  .listen-btn,.theme-btn,.start-btn{touch-action:manipulation}
   @media(max-width:760px){
-    .console{bottom:14px;width:calc(100vw - 24px);border-radius:18px}
+    .console{bottom:max(14px,env(safe-area-inset-bottom));width:calc(100vw - 24px);border-radius:18px}
     .console-grid{grid-template-columns:1fr 1fr}
     .zone-control{grid-column:1 / -1;border-top:1px solid var(--hairline)}
     .zone-control::before{display:none}
     .hud-bl,.hud-br{display:none}
-    .gauge-wrap{max-width:180px}
+    .gauge-wrap{max-width:190px}
+    .hud-tl{top:max(22px,env(safe-area-inset-top));left:max(20px,env(safe-area-inset-left))}
+    .theme-btn{top:max(20px,env(safe-area-inset-top));right:max(20px,env(safe-area-inset-right))}
+    .listen-btn{min-height:48px}
   }
   @media(max-width:480px){
+    /* single column, reordered: hero tuner -> data strip -> spectrum + thumb transport */
     .console-grid{grid-template-columns:1fr}
     .zone + .zone::before{display:none}
     .zone + .zone{border-top:1px solid var(--hairline)}
-    .zone{padding:16px 18px}
-    .hud-tl{top:18px;left:18px}
-    .theme-btn{top:16px;right:18px}
+    .zone{padding:13px 18px}
+    .zone-tuner{order:1}
+    .zone-readouts{order:2;flex-direction:row;align-items:flex-end;justify-content:space-between;gap:14px;padding-top:11px;padding-bottom:11px}
+    .zone-readouts .zone-label{margin-bottom:4px}
+    .zone-control{order:3;border-top:1px solid var(--hairline)}
+    .gauge-wrap{max-width:210px}
+    .big-num{font-size:clamp(26px,8vw,34px)}
+    .mid-num{font-size:clamp(18px,5.5vw,24px)}
+    .spectrum{height:36px;margin-bottom:12px}
+    .listen-btn{min-height:52px}
+    .hud-tl{top:max(18px,env(safe-area-inset-top));left:max(18px,env(safe-area-inset-left))}
+    .theme-btn{top:max(16px,env(safe-area-inset-top));right:max(18px,env(safe-area-inset-right))}
   }
 
   @media(prefers-reduced-motion:reduce){
@@ -427,9 +441,13 @@ $('gaugeWindow').setAttribute('d',arcPath(-5/50*MAXDEG,5/50*MAXDEG,R_ARC));
 })();
 
 /* ---------------- Three.js scene ---------------- */
+/* performance tier: mobile gets a lighter scene budget */
+const isMobile=matchMedia('(max-width:760px),(pointer:coarse)').matches;
+let pixelCap=isMobile?1.5:2;
 const canvas=$('bgCanvas');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,pixelCap));
+console.info(`[perf] tier=${isMobile?'mobile':'desktop'} pixelRatio=${renderer.getPixelRatio().toFixed(2)}`);
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.15;
 const scene=new THREE.Scene();
@@ -439,7 +457,8 @@ renderer.setClearColor(clearColor,1);
 
 const camera=new THREE.PerspectiveCamera(56,window.innerWidth/window.innerHeight,0.1,400);
 const camBase=new THREE.Vector3(0,7,30);
-camera.position.copy(camBase);camera.lookAt(0,3,0);
+let lookY=3; // portrait raises the horizon so the rings sit above the console
+camera.position.copy(camBase);camera.lookAt(0,lookY,0);
 
 const ambient=new THREE.AmbientLight(0x223044,1.4);scene.add(ambient);
 const keyLight=new THREE.PointLight(0xf2c17d,3,80);keyLight.position.set(0,10,2);scene.add(keyLight);
@@ -472,8 +491,8 @@ function makeRing(count,radius,size){
   root.add(mesh);
   return {mesh,base,px,pz,level,count};
 }
-const ringA=makeRing(84,10.5,0.42);
-const ringB=makeRing(52,6.8,0.30);
+const ringA=makeRing(isMobile?60:84,10.5,0.42);
+const ringB=makeRing(isMobile?40:52,6.8,0.30);
 const _m4=new THREE.Matrix4(),_col=new THREE.Color();
 
 /* waveform ring */
@@ -500,8 +519,8 @@ function makeStars(count,rMin,rMax,size){
   const pts=new THREE.Points(geo,new THREE.PointsMaterial({color:0x9fb4d6,size,transparent:true,opacity:0.5,sizeAttenuation:true}));
   scene.add(pts);return pts;
 }
-const starsFar=makeStars(900,110,190,0.4);
-const starsNear=makeStars(500,70,110,0.75);
+const starsFar=makeStars(isMobile?450:900,110,190,0.4);
+const starsNear=makeStars(isMobile?250:500,70,110,0.75);
 let starNearOp=0.7;
 
 /* polar floor — engraved observatory dial that dissolves into the fog */
@@ -612,14 +631,20 @@ function applyTheme(light){
 function resize(){
   const w=window.innerWidth,h=window.innerHeight;
   renderer.setSize(w,h,false);composer.setSize(w,h);
+  if(isMobile)bloom.setSize(w/2,h/2); // half-res bloom on mobile GPUs
   camera.aspect=w/h;camera.updateProjectionMatrix();
+  const portrait=h>w;
+  camBase.z=portrait?44:30; // pull back so the rings fit the narrow horizontal FOV
+  lookY=portrait?-6:3;      // aim below the stage: pushes the rings into the clear upper half
   resizeSpec();
 }
 window.addEventListener('resize',resize);
 
-/* parallax */
+/* parallax — pointer-driven, so skip it on touch devices */
 let pmx=0,pmy=0,ptx=0,pty=0;
-if(!reduceMotion){window.addEventListener('pointermove',e=>{ptx=(e.clientX/window.innerWidth-0.5);pty=(e.clientY/window.innerHeight-0.5);});}
+if(!reduceMotion&&!matchMedia('(pointer:coarse)').matches){
+  window.addEventListener('pointermove',e=>{ptx=(e.clientX/window.innerWidth-0.5);pty=(e.clientY/window.innerHeight-0.5);});
+}
 
 /* ---------------- Spectrum 2D ---------------- */
 const spec=$('spectrumCanvas');const sctx=spec.getContext('2d');
@@ -727,11 +752,28 @@ const ease=x=>1-Math.pow(1-x,3);
 const trans={t:1,dur:1.6,active:false}; // listening-start dolly-in
 let dip=0;                              // stop-time exposure dip
 let bloomKick=0;                        // onset-driven bloom accent
+let frameAvg=16,slowSince=0;            // adaptive degrade: rolling frame-time
 let last=performance.now();
+/* NOTE: no explicit document.hidden gate — browsers already pause rAF in hidden
+   tabs, and some embedded/headless contexts report hidden while still rendering */
 function frame(now){
   requestAnimationFrame(frame);
-  const dt=Math.min(0.05,(now-last)/1000);last=now;
+  const ms=now-last;last=now;
+  const dt=Math.min(0.05,ms/1000);
   const t=now*0.001;
+  /* adaptive degrade: sustained slow frames step the pixel ratio down */
+  if(ms<200){
+    frameAvg+=(ms-frameAvg)*0.05;
+    if(frameAvg>24){
+      if(!slowSince)slowSince=now;
+      else if(now-slowSince>3000&&pixelCap>1.0){
+        pixelCap=Math.max(1.0,pixelCap-0.25);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio,pixelCap));
+        resize();slowSince=0;frameAvg=16;
+        console.info(`[perf] degrade pixelRatio->${pixelCap}`);
+      }
+    }else slowSince=0;
+  }
   if(running)analyse();
 
   /* bars — instanced, asymmetric envelope: snap up on attack, fall gracefully */
@@ -827,7 +869,7 @@ function frame(now){
   camera.position.x=Math.sin(orbit)*4 + pmx*6*cin;
   camera.position.y=camBase.y + (1-cin)*3 + pmy*-3*cin + (running?rms*1.5:0);
   camera.position.z=camBase.z + (1-cin)*16 + Math.cos(orbit*0.6)*3;
-  camera.lookAt(0,3,0);
+  camera.lookAt(0,lookY,0);
 
   /* stop-time exposure dip */
   if(dip>0){
