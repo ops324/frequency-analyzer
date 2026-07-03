@@ -54,10 +54,10 @@
     --fs-micro:10px;
   }
   .light{
-    --bg:#e4ddcd;
-    --clear:#d8cfba;
-    --panel:rgba(252,250,245,0.88);
-    --panel-strong:rgba(252,250,245,0.96);
+    --bg:#e9e2d2;
+    --clear:#cfc4aa;
+    --panel:rgba(253,249,240,0.90);
+    --panel-strong:rgba(253,249,240,0.97);
     --border:rgba(40,33,22,0.20);
     --hairline:rgba(40,33,22,0.16);
     --text:#1a1712;
@@ -66,7 +66,7 @@
     --amber:#a4630f;
     --amber-bright:#8a5208;
     --cool:#256f93;
-    --mint:#0f8a55;
+    --mint:#0d764a;
     --shadow:0 30px 70px -30px rgba(60,48,24,0.42),0 12px 26px -14px rgba(60,48,24,0.30);
     --rim-top:rgba(255,255,255,0.90);
     --rim-side:rgba(255,255,255,0.30);
@@ -90,7 +90,7 @@
   .vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
     background:radial-gradient(120% 90% at 50% 38%,transparent 38%,rgba(0,0,0,0.35) 78%,rgba(0,0,0,0.72) 100%);
     transition:opacity .6s ease}
-  .light .vignette{background:radial-gradient(120% 90% at 50% 38%,transparent 45%,rgba(120,108,84,0.10) 80%,rgba(90,78,52,0.22) 100%)}
+  .light .vignette{background:radial-gradient(120% 90% at 50% 38%,transparent 48%,rgba(120,108,84,0.07) 82%,rgba(90,78,52,0.16) 100%)}
 
   .grain{position:fixed;inset:-50%;z-index:2;pointer-events:none;opacity:.045;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -215,6 +215,8 @@
   .listen-btn:focus-visible{outline:2px solid var(--amber-bright);outline-offset:3px}
   .listen-btn.running{background:transparent;color:var(--text);border-color:var(--border);
     box-shadow:inset 0 1px 0 var(--glass-highlight)}
+  .light .listen-btn{color:#fff}   /* black on light amber is 4.1:1 — white passes AA at 4.8:1 */
+  .light .listen-btn.running{color:var(--text)}
   .listen-btn svg{width:14px;height:14px}
   .status{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);white-space:nowrap}
   .dot{width:6px;height:6px;border-radius:50%;background:var(--text-faint);transition:background .3s,box-shadow .3s}
@@ -466,6 +468,7 @@ const coolLight=new THREE.PointLight(0x5fb4d6,2.2,70);coolLight.position.set(-14
 const rimLight=new THREE.DirectionalLight(0xffd79c,0.8);rimLight.position.set(6,12,8);scene.add(rimLight);
 
 const WARM=new THREE.Color(0xf2c17d),COOL=new THREE.Color(0x5fb4d6);
+const WARM_L=new THREE.Color(0xb06a12),COOL_L=new THREE.Color(0x2a7aa1); // light-theme bar palette: saturated, dark
 const root=new THREE.Group();scene.add(root);
 
 /* radial bars — two instanced rings (136 draw calls -> 2), per-bar colour doubles as emissive tint */
@@ -479,17 +482,18 @@ function makeRing(count,radius,size){
   const geo=new THREE.BoxGeometry(size,1,size);geo.translate(0,0.5,0); // pivot at base: scale.y grows upward
   const mesh=new THREE.InstancedMesh(geo,barMat,count);
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  const base=[],px=new Float32Array(count),pz=new Float32Array(count);
+  const base=[],baseL=[],px=new Float32Array(count),pz=new Float32Array(count);
   const level=new Float32Array(count).fill(0.08);
   for(let i=0;i<count;i++){
     base.push(WARM.clone().lerp(COOL,i/(count-1)));
+    baseL.push(WARM_L.clone().lerp(COOL_L,i/(count-1)));
     const a=(i/count)*Math.PI*2;
     px[i]=Math.cos(a)*radius;pz[i]=Math.sin(a)*radius;
     mesh.setColorAt(i,base[i]);
   }
   mesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
   root.add(mesh);
-  return {mesh,base,px,pz,level,count};
+  return {mesh,base,baseL,px,pz,level,count};
 }
 const ringA=makeRing(isMobile?60:84,10.5,0.42);
 const ringB=makeRing(isMobile?40:52,6.8,0.30);
@@ -592,12 +596,12 @@ pmrem.dispose();
 let themeLight=false,emissiveMul=1.0,lightMul=1.0,bloomBase=0.5,themeExposure=1.12;
 function applyTheme(light){
   themeLight=light;
-  const bg=light?0xd8cfba:0x04060b;
+  const bg=light?0xcfc4aa:0x04060b;
   clearColor.setHex(bg);renderer.setClearColor(clearColor,1);scene.fog.color.setHex(bg);
-  scene.fog.density=light?0.030:0.020;
-  themeExposure=light?0.95:1.12;
+  scene.fog.density=light?0.019:0.020;
+  themeExposure=light?0.88:1.12;
   renderer.toneMappingExposure=themeExposure;
-  pulse.material.color.setHex(light?0x0f8a55:0x5fe3a4);
+  pulse.material.color.setHex(light?0x0d764a:0x5fe3a4);
   bloom.threshold=light?0.92:0.55;   // light bg is bright, so only the very brightest glow
   bloom.radius=light?0.3:0.4;
   bloomBase=light?0.10:0.5;
@@ -606,12 +610,12 @@ function applyTheme(light){
   coolLight.intensity=2.2*lightMul;
   rimLight.intensity=light?0.5:0.8;
   ambient.color.setHex(light?0xa99f88:0x223044);
-  ambient.intensity=light?1.6:1.4;
-  barTheme.colorMul=light?0.55:1.0;
-  barMat.metalness=light?0.25:0.55;
-  barMat.roughness=light?0.55:0.3;
-  barMat.envMapIntensity=light?0.5:0.35;
-  barMat.emissiveIntensity=light?0.3:1.0;
+  ambient.intensity=light?1.45:1.4;
+  barTheme.colorMul=light?0.9:1.0;
+  barMat.metalness=light?0.3:0.55;
+  barMat.roughness=light?0.5:0.3;
+  barMat.envMapIntensity=light?0.55:0.35;
+  barMat.emissiveIntensity=light?0.35:1.0;
   core.material.color.setHex(light?0x123026:0x0e2018);
   core.material.envMapIntensity=light?0.5:0.4;
   coreWire.material.color.setHex(light?0x2c895f:0x6de8b0);
@@ -624,8 +628,8 @@ function applyTheme(light){
   starNearOp=light?0.2:0.7;starsNear.material.opacity=starNearOp;
   emberMat.color.setHex(light?0xa4630f:0xffd79c);
   emberMat.opacity=light?0.45:0.8;
-  floor.material.color.setHex(light?0xa89a78:0x16202e);
-  floor.material.opacity=light?0.6:0.85;
+  floor.material.color.setHex(light?0x9d8e6c:0x16202e);
+  floor.material.opacity=light?0.7:0.85;
 }
 
 function resize(){
@@ -792,7 +796,7 @@ function frame(now){
       const h=lv[i];
       _m4.set(1,0,0,ring.px[i], 0,h,0,0, 0,0,1,ring.pz[i], 0,0,0,1);
       mesh.setMatrixAt(i,_m4);
-      _col.copy(ring.base[i]).multiplyScalar((0.32+(h/maxH)*1.05)*barTheme.colorMul);
+      _col.copy((themeLight?ring.baseL:ring.base)[i]).multiplyScalar((0.32+(h/maxH)*1.05)*barTheme.colorMul);
       mesh.setColorAt(i,_col);
     }
     mesh.instanceMatrix.needsUpdate=true;
