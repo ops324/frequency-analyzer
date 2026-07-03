@@ -247,8 +247,9 @@
   }
   .start-btn:active{transform:scale(.99)}
   .start-btn:focus-visible{outline:2px solid var(--amber);outline-offset:4px}
-  .start-btn::before,.start-btn::after{content:"";position:absolute;inset:0;border-radius:50%;border:1px solid var(--amber);opacity:.5;animation:ring 2.6s ease-out infinite}
-  .start-btn::after{animation-delay:1.3s}
+  /* ring pulse period matches the 3D core idle breath (sin(t*1.6) -> ~3.93s) */
+  .start-btn::before,.start-btn::after{content:"";position:absolute;inset:0;border-radius:50%;border:1px solid var(--amber);opacity:.5;animation:ring 3.93s ease-out infinite}
+  .start-btn::after{animation-delay:1.96s}
   @keyframes ring{0%{transform:scale(1);opacity:.45}100%{transform:scale(1.6);opacity:0}}
   .start-btn .ico{width:26px;height:26px;color:var(--amber)}
   .start-btn .lbl{font-family:var(--font-mono);font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--text-dim)}
@@ -258,6 +259,7 @@
   .intro-note{margin-top:26px;font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);
     opacity:0;animation:rise 1s .75s ease forwards}
   .intro-note.error{color:#e98f7a;letter-spacing:.06em;text-transform:none;font-size:12px}
+  .intro-note.privacy{margin-top:10px;animation-delay:.9s}
   @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
   /* console reveal */
@@ -379,7 +381,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
           <span id="listenLabel">Listen</span>
         </button>
-        <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Ready</span></div>
+        <div class="status"><span class="dot" id="statusDot"></span><span id="statusText" aria-live="polite">Ready</span></div>
       </div>
     </div>
   </div>
@@ -394,6 +396,7 @@
     <span class="lbl">Press to listen</span>
   </button>
   <div class="intro-note" id="introNote">Best with headphones · uses your microphone locally</div>
+  <div class="intro-note privacy">Audio is analysed on-device — nothing leaves your browser</div>
 </div>
 
 <script type="importmap">
@@ -687,6 +690,7 @@ let lastPitch=0;
 
 async function start(){
   const lbl=startBtn.querySelector('.lbl');
+  let denied=false;
   startBtn.classList.add('waiting');lbl.textContent='Waiting…';
   statusText.textContent='Requesting…';
   try{
@@ -707,12 +711,13 @@ async function start(){
     intro.classList.add('hidden');
     if(!reduceMotion){trans.t=0;trans.active=true;}
   }catch(e){
+    denied=true;
     introNote.classList.add('error');
-    introNote.textContent=e&&e.name==='NotAllowedError'?'Microphone access denied — enable it in your browser to continue.':'Could not access microphone.';
+    introNote.textContent=e&&e.name==='NotAllowedError'?'Microphone access denied — enable it in your browser, then try again.':'Could not access microphone.';
     statusText.textContent='Ready';
     console.error(e);
   }finally{
-    startBtn.classList.remove('waiting');lbl.textContent='Press to listen';
+    startBtn.classList.remove('waiting');lbl.textContent=denied?'Try again':'Press to listen';
   }
 }
 function stop(){

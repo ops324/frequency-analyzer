@@ -44,8 +44,19 @@
   .serif { font-family: 'EB Garamond', serif; }
   .brand { color: #7cc4e2; letter-spacing: 0.32em; font-size: 22px; font-weight: 500; text-transform: uppercase; }
   .tag { color: #7b8499; letter-spacing: 0.26em; font-size: 16px; text-transform: uppercase; }
-  .reading { display: flex; align-items: baseline; gap: 48px; }
+  .reading { display: flex; align-items: center; gap: 56px; }
   .note { color: #5fe3a4; font-size: 150px; line-height: 0.9; font-weight: 500; text-shadow: 0 0 28px rgba(95,227,164,0.35); }
+  .note sup { font-size: 72px; color: rgba(95,227,164,0.75); }
+  .gauge { width: 300px; height: 190px; overflow: visible; }
+  .gauge .bg { fill: none; stroke: rgba(255,255,255,0.16); stroke-width: 2; }
+  .gauge .win { fill: none; stroke: rgba(95,227,164,0.4); stroke-width: 5; stroke-linecap: round; }
+  .gauge .arc { fill: none; stroke: #5fe3a4; stroke-width: 4; stroke-linecap: round; filter: drop-shadow(0 0 8px rgba(95,227,164,0.6)); }
+  .gauge .tick { stroke: #7b8499; stroke-width: 1.2; }
+  .gauge .tick.major { stroke: #a3abbd; stroke-width: 2; }
+  .gauge .num { font-family: 'Geist Mono', monospace; font-size: 9px; fill: #7b8499; }
+  .gauge .needle { stroke: #5fe3a4; stroke-width: 2.5; stroke-linecap: round; filter: drop-shadow(0 0 7px rgba(95,227,164,0.7)); }
+  .gauge .hub-ring { fill: none; stroke: #5fe3a4; stroke-width: 1.2; opacity: 0.6; }
+  .gauge .hub { fill: #5fe3a4; }
   .freq { color: #f2c17d; font-size: 72px; font-weight: 400; line-height: 1; text-shadow: 0 0 22px rgba(242,193,125,0.3); }
   .freq .unit { color: #a3abbd; font-size: 36px; }
   .cents { color: #5fe3a4; font-size: 26px; letter-spacing: 0.12em; margin-top: 14px; }
@@ -66,7 +77,15 @@
     </div>
 
     <div class="reading">
-      <div class="serif note">A4</div>
+      <div class="serif note">A<sup>4</sup></div>
+      <svg class="gauge" viewBox="0 0 200 128" id="ogGauge">
+        <path class="bg" id="gBg"></path>
+        <path class="win" id="gWin"></path>
+        <g id="gTicks"></g>
+        <line class="needle" x1="100" y1="126" x2="100" y2="46"></line>
+        <circle class="hub-ring" cx="100" cy="118" r="7"></circle>
+        <circle class="hub" cx="100" cy="118" r="2.6"></circle>
+      </svg>
       <div>
         <div class="mono freq">440.0 <span class="unit">Hz</span></div>
         <div class="mono cents">+0 cents &middot; in tune</div>
@@ -98,5 +117,21 @@
       </div>
     </div>
   </div>
+<script>
+  // mirrors buildTicks() in index.html — 5-cent minors, 25-cent majors + numerals
+  const CX=100,CY=118,MAXDEG=64,R_ARC=72,R_TICK=78,R_TICK2=84;
+  const pol=(deg,r)=>[CX+r*Math.sin(deg*Math.PI/180),CY-r*Math.cos(deg*Math.PI/180)];
+  const arc=(d1,d2,r)=>{const[a,b]=pol(d1,r),[c,d]=pol(d2,r);return `M ${a.toFixed(2)} ${b.toFixed(2)} A ${r} ${r} 0 ${Math.abs(d2-d1)>180?1:0} ${d2>d1?1:0} ${c.toFixed(2)} ${d.toFixed(2)}`;};
+  document.getElementById('gBg').setAttribute('d',arc(-MAXDEG,MAXDEG,R_ARC));
+  document.getElementById('gWin').setAttribute('d',arc(-6.4,6.4,R_ARC));
+  let s='';
+  for(let c=-50;c<=50;c+=5){
+    const deg=c/50*MAXDEG,major=c%25===0;
+    const[x1,y1]=pol(deg,major?R_TICK-3:R_TICK),[x2,y2]=pol(deg,R_TICK2);
+    s+=`<line class="tick${major?' major':''}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
+    if(major){const[nx,ny]=pol(deg,R_TICK2+9);s+=`<text class="num" x="${nx.toFixed(1)}" y="${(ny+3).toFixed(1)}" text-anchor="middle">${c>0?'+'+c:c}</text>`;}
+  }
+  document.getElementById('gTicks').innerHTML=s;
+</script>
 </body>
 </html>
