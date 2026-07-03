@@ -172,6 +172,12 @@
   .note .note-acc{font-size:.58em;vertical-align:.34em;letter-spacing:0}
   .note .note-oct{font-size:.5em;vertical-align:.52em;color:var(--text-dim);margin-left:.05em;letter-spacing:0;transition:color .3s}
   .gauge-center.intune .note-oct{color:var(--mint)}
+  @keyframes noteTick{from{transform:scale(1.045);filter:brightness(1.3)}to{transform:none;filter:none}}
+  .note.tick{animation:noteTick .22s ease-out}
+  .gauge-ripple{fill:none;stroke:var(--mint);opacity:0;pointer-events:none;
+    transform-box:fill-box;transform-origin:center}
+  .gauge-ripple.go{animation:ripple .7s ease-out}
+  @keyframes ripple{from{opacity:.6;transform:scale(1);stroke-width:2}to{opacity:0;transform:scale(6.5);stroke-width:.4}}
   .cents{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;color:var(--text-dim);margin-top:6px;font-variant-numeric:tabular-nums}
   .cents-dir{margin-right:.3em;transition:color .3s}
   .cents-dir.sharp{color:var(--amber)}
@@ -218,9 +224,9 @@
   /* ---- Intro overlay ---- */
   .intro{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;
     background:radial-gradient(120% 100% at 50% 45%,rgba(4,6,11,0.30),rgba(4,6,11,0.78) 70%,rgba(4,6,11,0.94));
-    transition:opacity .9s ease,visibility .9s}
+    transition:opacity .9s ease,visibility .9s,filter .9s ease;filter:blur(0)}
   .light .intro{background:radial-gradient(120% 100% at 50% 45%,rgba(231,224,210,0.30),rgba(231,224,210,0.82) 70%,rgba(231,224,210,0.96))}
-  .intro.hidden{opacity:0;visibility:hidden;pointer-events:none}
+  .intro.hidden{opacity:0;visibility:hidden;pointer-events:none;filter:blur(8px)}
   .intro-eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--amber);
     opacity:0;animation:rise .9s .15s ease forwards}
   .intro-title{font-family:var(--font-display);font-weight:400;font-size:clamp(40px,9vw,86px);line-height:1;letter-spacing:-.01em;margin:18px 0 14px;
@@ -244,6 +250,9 @@
   @keyframes ring{0%{transform:scale(1);opacity:.45}100%{transform:scale(1.6);opacity:0}}
   .start-btn .ico{width:26px;height:26px;color:var(--amber)}
   .start-btn .lbl{font-family:var(--font-mono);font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--text-dim)}
+  .start-btn.waiting{pointer-events:none;border-color:var(--amber)}
+  .start-btn.waiting .ico{animation:blink 1s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
   .intro-note{margin-top:26px;font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);
     opacity:0;animation:rise 1s .75s ease forwards}
   .intro-note.error{color:#e98f7a;letter-spacing:.06em;text-transform:none;font-size:12px}
@@ -279,6 +288,10 @@
   @media(prefers-reduced-motion:reduce){
     .grain{animation:none;opacity:.03}
     .start-btn::before,.start-btn::after{animation:none;opacity:0}
+    .start-btn.waiting .ico{animation:none}
+    .note.tick{animation:none}
+    .gauge-ripple.go{animation:none}
+    .intro,.intro.hidden{filter:none;transition:opacity .3s ease,visibility .3s}
     .dot.live{animation:none}
     .intro-eyebrow,.intro-title,.intro-sub,.start-btn,.intro-note,
     .revealed .hud-tl,.revealed .hud-bl,.revealed .hud-br,.revealed .theme-btn{animation:none;opacity:1;transform:none}
@@ -321,6 +334,7 @@
           <g id="needleGroup"><line class="gauge-needle" x1="100" y1="126" x2="100" y2="46"></line></g>
           <circle class="gauge-hub-ring" cx="100" cy="118" r="7"></circle>
           <circle class="gauge-hub" cx="100" cy="118" r="2.6"></circle>
+          <circle class="gauge-ripple" id="gaugeRipple" cx="100" cy="118" r="8"></circle>
         </svg>
         <div class="gauge-center" id="gaugeCenter">
           <div class="note" id="noteVal">—</div>
@@ -477,6 +491,13 @@ scene.add(stars);
 /* floor grid */
 let grid=new THREE.GridHelper(120,48,0x16202e,0x0c121b);grid.position.y=-0.02;scene.add(grid);
 
+/* in-tune celebration ring (pooled, reused) */
+const pulse=new THREE.Mesh(
+  new THREE.TorusGeometry(4.6,0.05,8,96),
+  new THREE.MeshBasicMaterial({color:0x5fe3a4,transparent:true,opacity:0}));
+pulse.rotation.x=Math.PI/2;pulse.position.y=1;pulse.visible=false;scene.add(pulse);
+let pulseT=1;
+
 /* composer + bloom — high threshold so ONLY bright emissive parts glow (blacks stay black) */
 const composer=new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene,camera));
@@ -485,13 +506,15 @@ composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
 /* ---------------- Theme-aware rendering ---------------- */
-let themeLight=false,emissiveMul=1.0,lightMul=1.0,bloomBase=0.5;
+let themeLight=false,emissiveMul=1.0,lightMul=1.0,bloomBase=0.5,themeExposure=1.12;
 function applyTheme(light){
   themeLight=light;
   const bg=light?0xd8cfba:0x04060b;
   clearColor.setHex(bg);renderer.setClearColor(clearColor,1);scene.fog.color.setHex(bg);
   scene.fog.density=light?0.030:0.020;
-  renderer.toneMappingExposure=light?0.95:1.12;
+  themeExposure=light?0.95:1.12;
+  renderer.toneMappingExposure=themeExposure;
+  pulse.material.color.setHex(light?0x0f8a55:0x5fe3a4);
   bloom.threshold=light?0.92:0.55;   // light bg is bright, so only the very brightest glow
   bloom.radius=light?0.3:0.45;
   bloomBase=light?0.10:0.5;
@@ -565,6 +588,9 @@ const disp={freq:0,db:-120,cents:0,needleDeg:0,ghostDeg:0,coreScale:1,bloom:0.85
 let lastPitch=0;
 
 async function start(){
+  const lbl=startBtn.querySelector('.lbl');
+  startBtn.classList.add('waiting');lbl.textContent='Waiting…';
+  statusText.textContent='Requesting…';
   try{
     stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
     audioCtx=new (window.AudioContext||window.webkitAudioContext)();
@@ -581,10 +607,14 @@ async function start(){
     listenBtn.classList.add('running');listenLabel.textContent='Stop';
     revealApp();
     intro.classList.add('hidden');
+    if(!reduceMotion){trans.t=0;trans.active=true;}
   }catch(e){
     introNote.classList.add('error');
     introNote.textContent=e&&e.name==='NotAllowedError'?'Microphone access denied — enable it in your browser to continue.':'Could not access microphone.';
+    statusText.textContent='Ready';
     console.error(e);
+  }finally{
+    startBtn.classList.remove('waiting');lbl.textContent='Press to listen';
   }
 }
 function stop(){
@@ -597,6 +627,7 @@ function stop(){
   statusDot.classList.remove('live');statusText.textContent='Stopped';
   hudBr.innerHTML='<span class="accent">STATUS</span> Standby';
   listenBtn.classList.remove('running');listenLabel.textContent='Listen';
+  if(!reduceMotion)dip=1;
 }
 function revealApp(){document.body.classList.add('revealed');}
 
@@ -616,6 +647,9 @@ function analyse(){
 
 /* ---------------- Render loop ---------------- */
 const lerp=(a,b,t)=>a+(b-a)*t;
+const ease=x=>1-Math.pow(1-x,3);
+const trans={t:1,dur:1.6,active:false}; // listening-start dolly-in
+let dip=0;                              // stop-time exposure dip
 let last=performance.now();
 function frame(now){
   requestAnimationFrame(frame);
@@ -665,17 +699,36 @@ function frame(now){
   keyLight.intensity=lerp(keyLight.intensity,(3+rms*14)*lightMul,0.1);
   stars.rotation.y+=dt*0.012;
 
-  /* camera dolly + parallax */
+  /* in-tune celebration ring */
+  if(pulseT<1){
+    pulseT=Math.min(1,pulseT+dt/0.9);const k=ease(pulseT);
+    pulse.scale.setScalar(1+k*2.4);pulse.material.opacity=(1-k)*0.55;
+    pulse.visible=pulseT<1;
+  }
+
+  /* camera dolly + parallax (start cinematic eases in from behind) */
   pmx=lerp(pmx,ptx,0.04);pmy=lerp(pmy,pty,0.04);
+  let cin=1;
+  if(trans.active){
+    trans.t=Math.min(1,trans.t+dt/trans.dur);
+    cin=ease(trans.t);
+    if(trans.t>=1)trans.active=false;
+  }
   const orbit=t*(running?0.05:0.035);
-  camera.position.x=Math.sin(orbit)*4 + pmx*6;
-  camera.position.y=camBase.y + pmy*-3 + (running?rms*1.5:0);
-  camera.position.z=camBase.z + Math.cos(orbit*0.6)*3;
+  camera.position.x=Math.sin(orbit)*4 + pmx*6*cin;
+  camera.position.y=camBase.y + (1-cin)*3 + pmy*-3*cin + (running?rms*1.5:0);
+  camera.position.z=camBase.z + (1-cin)*16 + Math.cos(orbit*0.6)*3;
   camera.lookAt(0,3,0);
 
-  /* bloom reacts (kept low; threshold confines it to highlights) */
+  /* stop-time exposure dip */
+  if(dip>0){
+    dip=Math.max(0,dip-dt/0.6);
+    renderer.toneMappingExposure=themeExposure*(1-0.2*Math.sin((1-dip)*Math.PI));
+  }
+
+  /* bloom reacts (kept low; threshold confines it to highlights); swells during start cinematic */
   disp.bloom=lerp(disp.bloom,bloomBase+(running?rms*0.5:0),0.08);
-  bloom.strength=disp.bloom;
+  bloom.strength=disp.bloom+(trans.active?Math.sin(cin*Math.PI)*0.55:0);
 
   if(running&&freqData)drawSpectrum(freqData,audioCtx.sampleRate);
 
@@ -685,12 +738,21 @@ function frame(now){
 
 /* ---------------- Readout / gauge UI ---------------- */
 function fmt(n,d){return n.toFixed(d);}
-let lastNote='',lastCents='';
+let lastNote='',lastCents='',wasInTune=false;
+const gaugeRipple=$('gaugeRipple');
 function renderNote(n){
   if(n===lastNote)return;lastNote=n;
   const m=/^([A-G])([#b]?)(-?\d+)$/.exec(n);
   if(!m){noteVal.textContent=n;return;}
   noteVal.innerHTML=`${m[1]}${m[2]?`<span class="note-acc">${m[2]==='#'?'♯':'♭'}</span>`:''}<span class="note-oct">${m[3]}</span>`;
+  if(!reduceMotion){noteVal.classList.remove('tick');void noteVal.offsetWidth;noteVal.classList.add('tick');}
+}
+function celebrate(){
+  if(reduceMotion)return;
+  gaugeRipple.classList.remove('go');void gaugeRipple.getBoundingClientRect().width;
+  gaugeRipple.classList.add('go');
+  pulseT=0;pulse.scale.setScalar(1);pulse.visible=true;
+  if(navigator.vibrate)navigator.vibrate(12);
 }
 function renderCents(html){
   if(html===lastCents)return;lastCents=html;
@@ -725,6 +787,8 @@ function updateReadouts(){
   needleGhost.setAttribute('transform',`rotate(${disp.ghostDeg.toFixed(2)} ${CX} ${CY})`);
   gaugeArc.setAttribute('d',arcPath(0,disp.needleDeg||0.001,R_ARC));
   const inTune=show&&Math.abs(tgt.cents)<5;
+  if(inTune&&!wasInTune)celebrate();
+  wasInTune=inTune;
   gauge.classList.toggle('intune',inTune);
   gaugeCenter.classList.toggle('intune',inTune);
   intuneTag.classList.toggle('on',inTune);
