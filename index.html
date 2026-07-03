@@ -145,22 +145,38 @@
   .zone-tuner{display:flex;flex-direction:column;align-items:center}
   .gauge-wrap{position:relative;width:100%;max-width:230px;margin-top:2px}
   .gauge{width:100%;height:auto;display:block;overflow:visible}
-  .gauge-bg{fill:none;stroke:var(--hairline);stroke-width:2}
+  .gauge-bg{fill:none;stroke:url(#arcGrad);stroke-width:2}
+  .gauge-window{fill:none;stroke:color-mix(in srgb,var(--mint) 32%,transparent);stroke-width:5;stroke-linecap:round}
   .gauge-arc{fill:none;stroke:var(--amber);stroke-width:4;stroke-linecap:round;
     filter:drop-shadow(0 0 6px color-mix(in srgb,var(--amber) 55%,transparent));transition:stroke .3s}
-  .gauge-tick{stroke:var(--text-faint);stroke-width:1.5}
+  .gauge-tick{stroke:var(--text-faint);stroke-width:1.2}
   .gauge-tick.major{stroke:var(--text-dim);stroke-width:2}
+  .gauge-num{font-family:var(--font-mono);font-size:9px;fill:var(--text-faint);letter-spacing:.04em}
   .gauge-needle{stroke:var(--text);stroke-width:2.5;stroke-linecap:round;
     filter:drop-shadow(0 0 5px color-mix(in srgb,var(--text) 40%,transparent))}
+  .gauge-needle.ghost{stroke:var(--text);stroke-width:2;opacity:.22;filter:none}
   .gauge-hub{fill:var(--text)}
+  .gauge-hub-ring{fill:none;stroke:var(--text);stroke-width:1.2;opacity:.5;transition:stroke .3s}
+  .arc-grad-lo{stop-color:var(--cool);stop-opacity:.4}
+  .arc-grad-mid{stop-color:var(--text-faint);stop-opacity:.28}
+  .arc-grad-hi{stop-color:var(--amber);stop-opacity:.4}
   .gauge.intune .gauge-arc{stroke:var(--mint);filter:drop-shadow(0 0 10px color-mix(in srgb,var(--mint) 75%,transparent))}
   .gauge.intune .gauge-needle{stroke:var(--mint);filter:drop-shadow(0 0 9px color-mix(in srgb,var(--mint) 70%,transparent))}
+  .gauge.intune .gauge-needle.ghost{filter:none}
   .gauge.intune .gauge-hub{fill:var(--mint)}
+  .gauge.intune .gauge-hub-ring{stroke:var(--mint)}
   .gauge-center{position:absolute;left:0;right:0;bottom:8%;display:flex;flex-direction:column;align-items:center;pointer-events:none}
   .note{font-family:var(--font-display);font-weight:400;font-size:var(--fs-note);line-height:.9;letter-spacing:-.01em;
     font-variant-numeric:tabular-nums;color:var(--text);transition:color .3s}
   .gauge-center.intune .note{color:var(--mint)}
+  .note .note-acc{font-size:.58em;vertical-align:.34em;letter-spacing:0}
+  .note .note-oct{font-size:.5em;vertical-align:.52em;color:var(--text-dim);margin-left:.05em;letter-spacing:0;transition:color .3s}
+  .gauge-center.intune .note-oct{color:var(--mint)}
   .cents{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;color:var(--text-dim);margin-top:6px;font-variant-numeric:tabular-nums}
+  .cents-dir{margin-right:.3em;transition:color .3s}
+  .cents-dir.sharp{color:var(--amber)}
+  .cents-dir.flat{color:var(--cool)}
+  .gauge-center.intune .cents-dir{color:var(--mint)}
   .intune-tag{margin-top:12px;font-size:9px;letter-spacing:.34em;text-transform:uppercase;color:var(--mint);
     opacity:0;transform:translateY(4px);transition:opacity .3s,transform .3s}
   .intune-tag.on{opacity:1;transform:none}
@@ -170,6 +186,8 @@
   .big-num{font-family:var(--font-mono);font-weight:400;font-size:var(--fs-data);line-height:.92;letter-spacing:-.03em;
     font-variant-numeric:tabular-nums;color:var(--text);display:flex;align-items:baseline;gap:8px;transition:color .3s}
   .big-num.live{color:var(--amber)}
+  .big-num .fd{font-size:.55em;color:var(--text-dim);letter-spacing:-.01em;transition:color .3s}
+  .big-num.live .fd{color:color-mix(in srgb,var(--amber) 72%,var(--text-dim))}
   .mid-num{font-family:var(--font-mono);font-weight:400;font-size:var(--fs-mid);letter-spacing:-.02em;
     font-variant-numeric:tabular-nums;color:var(--text);display:flex;align-items:baseline;gap:6px}
   .unit{font-family:var(--font-mono);font-size:13px;font-weight:400;color:var(--text-faint);letter-spacing:0}
@@ -288,11 +306,21 @@
       <div class="zone-label">Tuner</div>
       <div class="gauge-wrap">
         <svg class="gauge" id="gauge" viewBox="0 0 200 140" role="img" aria-label="Pitch tuning gauge">
+          <defs>
+            <linearGradient id="arcGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop class="arc-grad-lo" offset="0"></stop>
+              <stop class="arc-grad-mid" offset="0.5"></stop>
+              <stop class="arc-grad-hi" offset="1"></stop>
+            </linearGradient>
+          </defs>
           <path class="gauge-bg" id="gaugeBg"></path>
+          <path class="gauge-window" id="gaugeWindow"></path>
           <path class="gauge-arc" id="gaugeArc" d=""></path>
           <g id="gaugeTicks"></g>
-          <g id="needleGroup"><line class="gauge-needle" x1="100" y1="118" x2="100" y2="46"></line></g>
-          <circle class="gauge-hub" cx="100" cy="118" r="4"></circle>
+          <g id="needleGhost"><line class="gauge-needle ghost" x1="100" y1="118" x2="100" y2="48"></line></g>
+          <g id="needleGroup"><line class="gauge-needle" x1="100" y1="126" x2="100" y2="46"></line></g>
+          <circle class="gauge-hub-ring" cx="100" cy="118" r="7"></circle>
+          <circle class="gauge-hub" cx="100" cy="118" r="2.6"></circle>
         </svg>
         <div class="gauge-center" id="gaugeCenter">
           <div class="note" id="noteVal">—</div>
@@ -305,7 +333,7 @@
     <div class="zone zone-readouts">
       <div>
         <div class="zone-label">Frequency</div>
-        <div class="big-num" id="freqBig"><span id="freqVal">—</span><span class="unit">Hz</span></div>
+        <div class="big-num" id="freqBig"><span id="freqVal"><span id="freqInt">—</span><span class="fd" id="freqDec"></span></span><span class="unit">Hz</span></div>
       </div>
       <div>
         <div class="zone-label">Volume</div>
@@ -358,8 +386,8 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------------- DOM ---------------- */
 const $=id=>document.getElementById(id);
-const freqVal=$('freqVal'),dbVal=$('dbVal'),noteVal=$('noteVal'),centsVal=$('centsVal');
-const freqBig=$('freqBig'),gauge=$('gauge'),gaugeArc=$('gaugeArc'),needleGroup=$('needleGroup');
+const freqInt=$('freqInt'),freqDec=$('freqDec'),dbVal=$('dbVal'),noteVal=$('noteVal'),centsVal=$('centsVal');
+const freqBig=$('freqBig'),gauge=$('gauge'),gaugeArc=$('gaugeArc'),needleGroup=$('needleGroup'),needleGhost=$('needleGhost');
 const gaugeCenter=$('gaugeCenter'),intuneTag=$('intuneTag');
 const statusDot=$('statusDot'),statusText=$('statusText'),hudBr=$('hudBr'),hudBl=$('hudBl');
 const listenBtn=$('listenBtn'),listenLabel=$('listenLabel');
@@ -371,9 +399,15 @@ const R_ARC=72,R_TICK=78,R_TICK2=84,R_NEEDLE=72;
 const pol=(deg,r)=>[CX+r*Math.sin(deg*Math.PI/180),CY-r*Math.cos(deg*Math.PI/180)];
 function arcPath(d1,d2,r){const[x1,y1]=pol(d1,r),[x2,y2]=pol(d2,r);const large=Math.abs(d2-d1)>180?1:0;const sweep=d2>d1?1:0;return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} ${sweep} ${x2.toFixed(2)} ${y2.toFixed(2)}`;}
 $('gaugeBg').setAttribute('d',arcPath(-MAXDEG,MAXDEG,R_ARC));
+$('gaugeWindow').setAttribute('d',arcPath(-5/50*MAXDEG,5/50*MAXDEG,R_ARC));
 (function buildTicks(){
   const g=$('gaugeTicks');let s='';
-  for(let c=-50;c<=50;c+=10){const deg=c/50*MAXDEG;const major=(c%50===0);const[x1,y1]=pol(deg,major?R_TICK-2:R_TICK);const[x2,y2]=pol(deg,R_TICK2);s+=`<line class="gauge-tick${major?' major':''}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;}
+  for(let c=-50;c<=50;c+=5){
+    const deg=c/50*MAXDEG;const major=(c%25===0);
+    const[x1,y1]=pol(deg,major?R_TICK-3:R_TICK);const[x2,y2]=pol(deg,R_TICK2);
+    s+=`<line class="gauge-tick${major?' major':''}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
+    if(major){const[nx,ny]=pol(deg,R_TICK2+9);s+=`<text class="gauge-num" x="${nx.toFixed(1)}" y="${(ny+3).toFixed(1)}" text-anchor="middle">${c>0?'+'+c:c}</text>`;}
+  }
   g.innerHTML=s;
 })();
 
@@ -527,7 +561,7 @@ function drawSpectrum(fd,sr){
 let audioCtx,analyser,source,stream,running=false;
 let timeData,freqData,floatData;
 const tgt={freq:0,db:-120,cents:0,note:'—',has:false};
-const disp={freq:0,db:-120,cents:0,needleDeg:0,coreScale:1,bloom:0.85};
+const disp={freq:0,db:-120,cents:0,needleDeg:0,ghostDeg:0,coreScale:1,bloom:0.85};
 let lastPitch=0;
 
 async function start(){
@@ -651,6 +685,17 @@ function frame(now){
 
 /* ---------------- Readout / gauge UI ---------------- */
 function fmt(n,d){return n.toFixed(d);}
+let lastNote='',lastCents='';
+function renderNote(n){
+  if(n===lastNote)return;lastNote=n;
+  const m=/^([A-G])([#b]?)(-?\d+)$/.exec(n);
+  if(!m){noteVal.textContent=n;return;}
+  noteVal.innerHTML=`${m[1]}${m[2]?`<span class="note-acc">${m[2]==='#'?'♯':'♭'}</span>`:''}<span class="note-oct">${m[3]}</span>`;
+}
+function renderCents(html){
+  if(html===lastCents)return;lastCents=html;
+  centsVal.innerHTML=html;
+}
 function updateReadouts(){
   const show=running&&tgt.has;
   // smooth values
@@ -658,21 +703,26 @@ function updateReadouts(){
   if(show){
     disp.freq=lerp(disp.freq,tgt.freq,0.22);
     disp.cents=lerp(disp.cents,tgt.cents,0.18);
-    freqVal.textContent=fmt(disp.freq,1);
-    noteVal.textContent=tgt.note;
+    const f=fmt(disp.freq,1),dot=f.indexOf('.');
+    freqInt.textContent=f.slice(0,dot);freqDec.textContent=f.slice(dot);
+    renderNote(tgt.note);
     const cv=Math.round(disp.cents);
-    centsVal.textContent=`${cv>0?'+':''}${cv} cents`;
+    const dir=cv>0?'<span class="cents-dir sharp">♯</span>':cv<0?'<span class="cents-dir flat">♭</span>':'';
+    renderCents(`${dir}${cv>0?'+':''}${cv} cents`);
     freqBig.classList.add('live');
   }else{
-    freqVal.textContent='—';noteVal.textContent='—';centsVal.textContent='— cents';
+    freqInt.textContent='—';freqDec.textContent='';
+    renderNote('—');renderCents('— cents');
     freqBig.classList.remove('live');
     disp.cents=lerp(disp.cents,0,0.12);
   }
   dbVal.textContent= running&&disp.db>-99 ? Math.round(disp.db) : '—';
 
-  // gauge needle
+  // gauge needle (+ ghost with slower follow = analog inertia)
   disp.needleDeg=disp.cents/50*MAXDEG;
+  disp.ghostDeg=reduceMotion?disp.needleDeg:lerp(disp.ghostDeg,disp.needleDeg,0.07);
   needleGroup.setAttribute('transform',`rotate(${disp.needleDeg.toFixed(2)} ${CX} ${CY})`);
+  needleGhost.setAttribute('transform',`rotate(${disp.ghostDeg.toFixed(2)} ${CX} ${CY})`);
   gaugeArc.setAttribute('d',arcPath(0,disp.needleDeg||0.001,R_ARC));
   const inTune=show&&Math.abs(tgt.cents)<5;
   gauge.classList.toggle('intune',inTune);
